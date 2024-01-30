@@ -1,0 +1,19 @@
+[tool.poetry]
+authors = ["Matilda Peruzzo <matilda.peruzzo@gmail.com>"]
+description = "A package for teaching algorithms to play tetris with RL"
+license = "MIT"
+name = "tetris-school"
+readme = "README.md"
+version = "0.1.0"
+
+[tool.poetry.dependencies]
+python = "^3.7,^3.8"
+torch = "^2.2.0"
+numpy = "1.18"
+matplotlib = "3.5"
+pygame = "2.5"
+ipython = "7.34"
+
+[build-system]
+build-backend = "poetry.core.masonry.api"
+requires = ["poetry-core"]
