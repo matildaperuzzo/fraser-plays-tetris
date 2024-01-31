@@ -195,7 +195,7 @@ class TetrisAI:
         updatedBlocks[:, :self.height-sum(isfull)] = np.delete(self.placedBlocks, np.where(isfull), axis=1)
 
         self.placedBlocks = updatedBlocks
-        self.score += 1
+        self.score += sum(isfull)
 
         self.n_cleared_lines += sum(isfull)
         self.n_cleared_lines_total += sum(isfull)
@@ -229,22 +229,12 @@ class TetrisAI:
         x_rotated = x_median - y_rel
         y_rotated = y_median + x_rel
 
-        # bounce back if rotated shape is out of bounds
-        if x_rotated.max() >= self.width:
-            x_rotated -= 1
-        elif x_rotated.min() < 0:
-            x_rotated += 1
+        if x_rotated.max() < self.width-1 and x_rotated.min() > 0:  # boundary check
+            # check for collisions
+            if not self.placedBlocks[x_rotated[y_rotated < self.height], y_rotated[y_rotated < self.height]].any():
 
-        if y_rotated.max() >= self.height:
-            y_rotated -= 1
-        elif y_rotated.min() < 0:
-            y_rotated += 1
-
-        # check for collisions
-        if not self.placedBlocks[x_rotated[self.shape_inview], y_rotated[self.shape_inview]].any():
-
-            self.x = x_rotated
-            self.y = y_rotated
+                self.x = x_rotated
+                self.y = y_rotated
 
     def get_reward(self):
         # find highest point of in placed blocks
