@@ -231,7 +231,7 @@ class TetrisAI:
 
         if x_rotated.max() < self.width-1 and x_rotated.min() > 0:  # boundary check
             # check for collisions
-            if not self.placedBlocks[x_rotated[self.shape_inview], y_rotated[self.shape_inview]].any():
+            if not self.placedBlocks[x_rotated[y_rotated < self.height], y_rotated[y_rotated < self.height]].any():
 
                 self.x = x_rotated
                 self.y = y_rotated
