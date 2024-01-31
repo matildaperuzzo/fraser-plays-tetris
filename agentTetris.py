@@ -19,7 +19,7 @@ class Agent:
         self.gamma = 0.9 # discount rate, must be smaller than 1
         self.memory = deque(maxlen=MAX_MEMORY) # popleft()
         self.file = file
-        self.model = Linear_QNet(180, 320, 6, 4, file = self.file).cuda() #num of states, hidden layer size, num of actions
+        self.model = Linear_QNet(180, 320, 6, 4, file = self.file) #num of states, hidden layer size, num of actions
         self.trainer = QTrainer(self.model, lr=LR, gamma=self.gamma)
         self.method = "full" #choices are simple, medium, full
 
@@ -158,7 +158,7 @@ class Agent:
             move = random.randint(0, 2)
             final_move[move] = 1
         else:
-            state0 = torch.tensor(state, dtype=torch.float).cuda()
+            state0 = torch.tensor(state, dtype=torch.float)
             prediction = self.model(state0)
             move = torch.argmax(prediction).item()
             final_move[move] = 1

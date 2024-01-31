@@ -179,9 +179,7 @@ class TetrisAI:
         self.shape["y"] = value
 
     def _place_shape(self):
-        self.reward = self.get_reward()
-        for point in self.shape:
-            self.placedBlocks[int(point.x//BLOCK_SIZE), int(point.y//BLOCK_SIZE)] = 1
+        # self.reward = self.get_reward()
 
         # shape points in view
         x = self.x[self.shape_inview]
