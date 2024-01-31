@@ -1,7 +1,7 @@
 import torch
 import random
 import numpy as np
-from gameTetris import TetrisAI, Actions, Point
+from gameTetris import TetrisAI
 from collections import deque
 from model import Linear_QNet, QTrainer
 from helper import plot
@@ -19,11 +19,11 @@ class Agent:
         self.gamma = 0.9 # discount rate, must be smaller than 1
         self.memory = deque(maxlen=MAX_MEMORY) # popleft()
         self.file = file
-        self.model = Linear_QNet(12, 512, 2, 4, file = self.file) #num of states, hidden layer size, num of actions
+        self.model = Linear_QNet(180, 320, 6, 4, file = self.file).cuda() #num of states, hidden layer size, num of actions
         self.trainer = QTrainer(self.model, lr=LR, gamma=self.gamma)
-        self.method = "simple" #choices are simple, medium, full
+        self.method = "full" #choices are simple, medium, full
 
-    def get_state(self, game):
+    def get_state(self, game: TetrisAI) -> np.ndarray:
         """
         State:
         # How many of the shape blocks fit into the placed blocks perfectly (number of blocks in shape)
@@ -131,23 +131,9 @@ class Agent:
                 state.append(0) 
 
         if method == "full":
-            # find distance between placed blocks and shape
-            for point in game.shape:
-                #find highest point in placed blocks with same x
-                highest = 0
-                for i in range(len(game.placedBlocks)):
-                    if game.placedBlocks[i][int(point.x//game.block_size)] == 1:
-                        highest = i
+            state = game.state
 
-            for x,y in game.shape:
-                state.append(point.x)
-                state.append(point.y)
-            for i in game.placedBlocks:
-                for j in i:
-                    state.append(j)
-
-        state = np.array(state)
-        return state
+        return state.flatten()
 
     def remember(self, state, action, reward, next_state, done):
         self.memory.append((state, action, reward, next_state, done)) # popleft if MAX_MEMORY is reached
@@ -172,7 +158,7 @@ class Agent:
             move = random.randint(0, 2)
             final_move[move] = 1
         else:
-            state0 = torch.tensor(state, dtype=torch.float)
+            state0 = torch.tensor(state, dtype=torch.float).cuda()
             prediction = self.model(state0)
             move = torch.argmax(prediction).item()
             final_move[move] = 1
@@ -258,6 +244,7 @@ def get_distance_count(self,shape, game):
 
     count_of_most_common = count/len(yPoints)
     return count_of_most_common, min(distances)
+
 
 if __name__ == '__main__':
     # train(file="model_gamma0.9_lr0.001_method-simple.pth")
