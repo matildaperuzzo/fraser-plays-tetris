@@ -179,7 +179,7 @@ class TetrisAI:
         self.shape["y"] = value
 
     def _place_shape(self):
-        # self.reward = self.get_reward()
+        self.reward = self.get_reward()
 
         # shape points in view
         x = self.x[self.shape_inview]
@@ -249,10 +249,5 @@ class TetrisAI:
             if ind > highest:
                 highest = ind
 
-        lowest = self.height
-        # find lowest point of shape
-        for point in self.shape:
-            if point.y//BLOCK_SIZE < lowest:
-                lowest = point.y//BLOCK_SIZE
-
+        lowest = self.y.min()
         return highest - lowest
