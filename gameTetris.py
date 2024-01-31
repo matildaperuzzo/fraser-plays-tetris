@@ -25,7 +25,7 @@ BLUE2 = (0, 100, 255)
 BLACK = (0,0,0)
 
 BLOCK_SIZE = 20
-SPEED = 100
+SPEED = 50
 
 class TetrisAI:
 
@@ -38,7 +38,9 @@ class TetrisAI:
         pygame.display.set_caption('Tetris')
         self.clock = pygame.time.Clock()
         self.reset()
+        self.n_cleared_lines_total = 0
         self.n_cleared_lines = 0
+        self.reward = 0
         
 
 
@@ -65,12 +67,19 @@ class TetrisAI:
         self._move(action) # update the head
         
         # 3. check if game over
-        reward = 0
+        if self.reward != 0:
+            reward = self.reward
+            self.reward = 0
+        else:
+            reward = 0
         game_over = False
+        reward += 10*self.n_cleared_lines
+        self.n_cleared_lines = 0
+
         if self._check_game_over():
             game_over = True
-            reward = -1
-
+            reward -= 1
+            
             return reward, game_over, self.score
         
         # 5. update ui and clock
@@ -86,8 +95,8 @@ class TetrisAI:
         for row in range(len(self.placedBlocks)):
             for col in range(len(self.placedBlocks[row])):
                 if self.placedBlocks[row][col] == 1:
-                    pygame.draw.rect(self.display, BLUE1, pygame.Rect(row*BLOCK_SIZE, self.h-col*BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE))
-                    pygame.draw.rect(self.display, BLUE2, pygame.Rect(row*BLOCK_SIZE+4, self.h-col*BLOCK_SIZE+4, 12, 12))
+                    pygame.draw.rect(self.display, BLUE1, pygame.Rect((row)*BLOCK_SIZE, self.h-(col+1)*BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE))
+                    pygame.draw.rect(self.display, BLUE2, pygame.Rect((row)*BLOCK_SIZE+4, self.h-(col+1)*BLOCK_SIZE+4, 12, 12))
 
 
         for point in self.shape:
@@ -193,18 +202,24 @@ class TetrisAI:
 
 
     def _place_shape(self):
+        self.reward = self.get_reward()
         for point in self.shape:
             self.placedBlocks[int(point.x//BLOCK_SIZE), int(point.y//BLOCK_SIZE)] = 1
 
     
     def _clear_rows(self):
+        cleared = False
         for row in range(self.h//BLOCK_SIZE):
             if np.all(self.placedBlocks[:,row] == 1):
+                print(row)
                 self.placedBlocks[:,row:-2] = self.placedBlocks[:,row+1:-1]
-                self.placedBlocks[:,0] = 0
                 self.score += 1
+                self.n_cleared_lines_total += 1
                 self.n_cleared_lines += 1
-                break
+                cleared = True
+        # if not cleared:
+        #     self.n_cleared_lines = 0
+
                 
     def _new_shape(self):
         centerX = random.randint(1, self.w//BLOCK_SIZE-2)
@@ -224,7 +239,7 @@ class TetrisAI:
     def _check_bottom(self):
         
         for point in self.shape:
-            if point.y == BLOCK_SIZE or self.placedBlocks[int(point.x//BLOCK_SIZE), int(point.y//BLOCK_SIZE)-1] == 1:
+            if point.y == 0 or self.placedBlocks[int(point.x//BLOCK_SIZE), int(point.y//BLOCK_SIZE)-1] == 1:
                 return True
         return False
 
@@ -241,3 +256,24 @@ class TetrisAI:
         final_rotated_shape = [Point(x + center_point[0], y + center_point[1]) for x, y in rotated_shape]
 
         return final_rotated_shape
+    
+    def get_reward(self):
+        #find highest point of in placed blocks
+        highest = 0
+        for col in self.placedBlocks:
+            #find location of highest block in column
+            ind = np.where(col == 1)[0]
+            if len(ind) == 0:
+                ind = 0
+            else:
+                ind = ind[-1]
+            if ind > highest:
+                highest = ind
+        
+        lowest = self.h//BLOCK_SIZE
+        #find lowest point of shape
+        for point in self.shape:
+            if point.y//BLOCK_SIZE < lowest:
+                lowest = point.y//BLOCK_SIZE
+        
+        return highest - lowest

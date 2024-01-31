@@ -8,7 +8,7 @@ from helper import plot
 
 MAX_MEMORY = 100_000
 BATCH_SIZE = 1000
-LR = 0.001
+LR = 0.01
 
 class Agent:
 
@@ -34,7 +34,7 @@ class Agent:
         state = []
 
         method = self.method
-        self.n_cleared_lines = game.n_cleared_lines
+        self.n_cleared_lines = game.n_cleared_lines_total
 
         if method == "medium":
             yPoints = []
@@ -166,9 +166,9 @@ class Agent:
 
     def get_action(self, state):
         # random moves: tradeoff exploration / exploitation
-        self.epsilon = 5000 - self.n_cleared_lines
+        self.epsilon = 500 - self.n_cleared_lines
         final_move = [0, 0, 0, 0]
-        if random.randint(0, 10000) < self.epsilon and self.file == None:
+        if random.randint(0, 1000) < self.epsilon and self.file == None:
             move = random.randint(0, 2)
             final_move[move] = 1
         else:
@@ -199,6 +199,8 @@ def train(file = None):
         # perform move and get new state
         reward, done, score = game.play_step(final_move)
         state_new = agent.get_state(game)
+        if reward > 0:
+            print(reward)
 
         # train short memory
         agent.train_short_memory(state_old, final_move, reward, state_new, done)
