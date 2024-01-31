@@ -20,12 +20,13 @@ Point = namedtuple('Point', 'x, y')
 # rgb colors
 WHITE = (255, 255, 255)
 RED = (200,0,0)
+RED2 = (255, 100, 0)
 BLUE1 = (0, 0, 255)
 BLUE2 = (0, 100, 255)
 BLACK = (0,0,0)
 
 BLOCK_SIZE = 20
-SPEED = 50
+SPEED = 100
 
 class TetrisAI:
 
@@ -101,9 +102,8 @@ class TetrisAI:
 
         for point in self.shape:
             pygame.draw.rect(self.display, RED, pygame.Rect(point.x, self.h-point.y, BLOCK_SIZE, BLOCK_SIZE))
-            pygame.draw.rect(self.display, BLUE2, pygame.Rect(point.x+4, self.h-point.y+4, 12, 12))
+            pygame.draw.rect(self.display, RED2, pygame.Rect(point.x+4, self.h-point.y+4, 12, 12))
 
-        pygame.draw.rect(self.display, BLUE1, pygame.Rect(self.centerPoint.x, self.h-self.centerPoint.y, BLOCK_SIZE, BLOCK_SIZE))
         text = font.render("Score: " + str(self.score), True, WHITE)
         self.display.blit(text, [0, 0])
         pygame.display.flip()
