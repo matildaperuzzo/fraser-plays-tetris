@@ -73,7 +73,7 @@ class QTrainer:
         # (n, x)
         # n = 1
         if state.ndim == 1:
-            return
+            # return
             # (1, x)
             state = torch.unsqueeze(state,0)
             next_state = torch.unsqueeze(next_state,0)

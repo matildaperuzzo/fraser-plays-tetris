@@ -22,7 +22,7 @@ BLUE2 = (0, 100, 255)
 BLACK = (0, 0, 0)
 
 BLOCK_SIZE = 20
-SPEED = 100
+SPEED = 50
 
 
 class TetrisAI:
@@ -42,7 +42,9 @@ class TetrisAI:
         self.clock = pygame.time.Clock()
 
         self.reset()
+        self.n_cleared_lines_total = 0
         self.n_cleared_lines = 0
+        self.reward = 0
 
     def reset(self):
         # init game state
@@ -72,11 +74,18 @@ class TetrisAI:
         self._move(action)
 
         # 3. check if game over
-        reward = 0
+        if self.reward != 0:
+            reward = self.reward
+            self.reward = 0
+        else:
+            reward = 0
         game_over = False
+        reward += 10*self.n_cleared_lines
+        self.n_cleared_lines = 0
+
         if self._check_game_over():
             game_over = True
-            reward = -1
+            reward -= 1
 
             return reward, game_over, self.score
 
@@ -169,6 +178,9 @@ class TetrisAI:
         self.shape["y"] = value
 
     def _place_shape(self):
+        self.reward = self.get_reward()
+        for point in self.shape:
+            self.placedBlocks[int(point.x//BLOCK_SIZE), int(point.y//BLOCK_SIZE)] = 1
 
         # shape points in view
         x = self.x[self.shape_inview]
@@ -184,7 +196,11 @@ class TetrisAI:
         updatedBlocks[:, :self.height-sum(isfull)] = np.delete(self.placedBlocks, np.where(isfull), axis=1)
 
         self.placedBlocks = updatedBlocks
+        self.score += 1
 
+        self.n_cleared_lines += sum(isfull)
+        self.n_cleared_lines_total += sum(isfull)
+  
     def _new_shape(self):
         """Create a new shape above the view"""
         self.shape = np.array([
@@ -230,3 +246,24 @@ class TetrisAI:
 
             self.x = x_rotated
             self.y = y_rotated
+
+    def get_reward(self):
+        # find highest point of in placed blocks
+        highest = 0
+        for col in self.placedBlocks:
+            # find location of highest block in column
+            ind = np.where(col == 1)[0]
+            if len(ind) == 0:
+                ind = 0
+            else:
+                ind = ind[-1]
+            if ind > highest:
+                highest = ind
+
+        lowest = self.height
+        # find lowest point of shape
+        for point in self.shape:
+            if point.y//BLOCK_SIZE < lowest:
+                lowest = point.y//BLOCK_SIZE
+
+        return highest - lowest
