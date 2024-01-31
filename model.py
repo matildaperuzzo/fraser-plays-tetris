@@ -21,20 +21,28 @@ class ReplayBuffer:
 
 
 class Linear_QNet(nn.Module):
-    def __init__(self,input_size,hidden_size1, hidden_size2, output_size, file = None):
+    def __init__(self,input_size,hidden_size, layer_number, output_size, file = None):
         super().__init__()
-        self.linear1 = nn.Linear(input_size,hidden_size1)
-        self.linear2 = nn.Linear(hidden_size1,hidden_size2)
-        self.linear3 = nn.Linear(hidden_size2,output_size)
+        self.norm0 = nn.LayerNorm(input_size)
+        self.embed_layer = nn.Linear(input_size,hidden_size)
+        self.norm1 = nn.LayerNorm(hidden_size)
+        self.linear_lat1 = [nn.Linear(hidden_size,hidden_size) for i in range(layer_number)]
+        self.linear_lat2 = [nn.Linear(hidden_size,hidden_size) for i in range(layer_number)]
+        self.head_layer = nn.Linear(hidden_size,output_size)
 
         if file:
             self.load(file)
 
 
     def forward(self,x):
-        x = F.relu(self.linear1(x))
-        x = F.relu(self.linear2(x))
-        x = self.linear3(x)
+        x = self.norm0(x)
+        x = self.embed_layer(x)
+        for layer1,layer2 in zip(self.linear_lat1,self.linear_lat2):
+            x = self.norm1(x)
+            x = F.gelu(layer1(x))
+            x = layer2(x)
+        x = self.norm1(x)
+        x = self.head_layer(x)
         return x
     
     def save(self,file_name='model.pth'):

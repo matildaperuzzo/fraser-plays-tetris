@@ -19,9 +19,9 @@ class Agent:
         self.gamma = 0.9 # discount rate, must be smaller than 1
         self.memory = deque(maxlen=MAX_MEMORY) # popleft()
         self.file = file
-        self.model = Linear_QNet(12, 512, 512, 4, file = self.file) #num of states, hidden layer size, num of actions
+        self.model = Linear_QNet(12, 512, 2, 4, file = self.file) #num of states, hidden layer size, num of actions
         self.trainer = QTrainer(self.model, lr=LR, gamma=self.gamma)
-        self.method = "medium" #choices are simple, medium, full
+        self.method = "simple" #choices are simple, medium, full
 
     def get_state(self, game):
         """
@@ -166,9 +166,9 @@ class Agent:
 
     def get_action(self, state):
         # random moves: tradeoff exploration / exploitation
-        self.epsilon = 10000 - self.n_cleared_lines
+        self.epsilon = 5000 - self.n_cleared_lines
         final_move = [0, 0, 0, 0]
-        if random.randint(0, 50000) < self.epsilon and self.file == None:
+        if random.randint(0, 10000) < self.epsilon and self.file == None:
             move = random.randint(0, 2)
             final_move[move] = 1
         else:
@@ -258,5 +258,5 @@ def get_distance_count(self,shape, game):
     return count_of_most_common, min(distances)
 
 if __name__ == '__main__':
-    train(file="model_gamma0.9_lr0.001_method-simple.pth")
-    # train()
+    # train(file="model_gamma0.9_lr0.001_method-simple.pth")
+    train()
