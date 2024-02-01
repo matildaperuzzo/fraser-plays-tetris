@@ -17,13 +17,13 @@ class Agent:
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         self.n_games = 0
         self.epsilon = 0  # randomness
-        self.n_cleared_lines = 0
+        self.total_cleared_lines = 0
         self.gamma = 0.9  # discount rate, must be smaller than 1
         self.memory = deque(maxlen=MAX_MEMORY)  # popleft()
         self.file = file
 
         # num of states, hidden layer size, num of actions
-        self.model = Linear_QNet(180, 512, 6, 4, file=self.file).to(self.device)
+        self.model = Linear_QNet(100, 512, 6, 4, file=self.file).to(self.device)
         self.trainer = QTrainer(self.model, lr=LR, gamma=self.gamma)
 
         # choices are simple, medium, full
@@ -39,7 +39,7 @@ class Agent:
         """
 
         method = self.method
-        self.n_cleared_lines = game.total_cleared_lines
+        self.total_cleared_lines = game.total_cleared_lines
 
         if method == "medium":
             #find unique x values
@@ -100,7 +100,7 @@ class Agent:
         # tradeoff exploration / exploitation
         exploit = True
 
-        if self.n_cleared_lines_total % 100 == 0 and self.n_cleared_lines_total != 0:
+        if self.total_cleared_lines % 100 == 0 and self.total_cleared_lines != 0:
             name = f"model_gamma{self.gamma}_lr{LR}_method-{self.method}.pth"
             self.model.save(file_name=name)
 

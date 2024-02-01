@@ -1,7 +1,6 @@
 import pygame
 from enum import Enum
 import torch
-import numpy as np
 
 ui_toggle = True
 if ui_toggle:
