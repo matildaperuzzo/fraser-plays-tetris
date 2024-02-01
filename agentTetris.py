@@ -19,7 +19,7 @@ class Agent:
         self.gamma = 0.9 # discount rate, must be smaller than 1
         self.memory = deque(maxlen=MAX_MEMORY) # popleft()
         self.file = file
-        self.model = Linear_QNet(12, 512, 4, 4, file = self.file) #num of states, hidden layer size, num of actions
+        self.model = Linear_QNet(20, 512, 4, 4, file = self.file) #num of states, hidden layer size, num of actions
         self.trainer = QTrainer(self.model, lr=LR, gamma=self.gamma)
         self.method = "medium" #choices are simple, medium, full
 
@@ -34,7 +34,7 @@ class Agent:
         state = []
 
         method = self.method
-        self.n_cleared_lines = game.n_cleared_lines_total
+        self.n_cleared_lines_total = game.n_cleared_lines_total
 
         if method == "medium":
             #find unique x values
@@ -60,77 +60,14 @@ class Agent:
                 else:
                     ind = ind[-1]
                 bottom[i] = ind
-            top = top - game.height
-            bottom = bottom - min(bottom)
+            bottom = bottom
             state = np.concatenate((top,bottom))
                 
 
         if method == "simple":
-            try:
-                shapeNothing = []
-                for point in game.shape:
-                    x = point.x
-                    y = point.y - game.block_size
-                    shapeNothing.append(Point(x,y))
-                count_of_most_common, min_dist = get_distance_count(self,shapeNothing, game)
-                state.append(count_of_most_common)
-                state.append(min_dist)
-                state.append(game.centerPoint.y//game.block_size)
-            except:
-                state.append(0)
-                state.append(0)
-                state.append(0)
-
-            shapeLeft = []
-            for point in game.shape:
-                x = point.x - game.block_size
-                y = point.y - game.block_size
-                shapeLeft.append(Point(x,y))
-            
-            try:
-                count_of_most_common, min_dist = get_distance_count(self,shapeLeft, game)
-                state.append(count_of_most_common)
-                state.append(min_dist)
-                state.append(game.centerPoint.y//game.block_size)                    
-                
-            except:
-                state.append(0)
-                state.append(0)
-                state.append(0)
-
-            shapeRight = []
-            for point in game.shape:
-                x = point.x + game.block_size
-                y = point.y - game.block_size
-                shapeRight.append(Point(x,y))
-            
-            try:
-                count_of_most_common, min_dist = get_distance_count(self,shapeRight, game)
-                state.append(count_of_most_common)
-                state.append(min_dist)
-                state.append(game.centerPoint.y//game.block_size)
-
-            except:
-                state.append(0)
-                state.append(0)
-                state.append(0)
-
-            shapeRotate = game.rotate_shape(game.shape, (game.centerPoint.x, game.centerPoint.y))
-            for i,point in enumerate(shapeRotate):
-                x = point.x
-                y = point.y - game.block_size
-                shapeRotate[i] = Point(x,y)
-
-            try:
-                count_of_most_common, min_dist = get_distance_count(self,shapeRotate, game)
-                state.append(count_of_most_common)
-                state.append(min_dist)
-                state.append(game.centerPoint.y//game.block_size)
-
-            except:
-                state.append(0)
-                state.append(0)
-                state.append(0) 
+            x = game.x
+            y = game.y
+            game.placedBlocks[x]
 
         if method == "full":
             state = game.state
@@ -154,9 +91,9 @@ class Agent:
 
     def get_action(self, state):
         # random moves: tradeoff exploration / exploitation
-        self.epsilon = 500 - self.n_cleared_lines
+        self.epsilon = 100 - self.n_cleared_lines_total
         final_move = [0, 0, 0, 0]
-        if random.randint(0, 1000) < self.epsilon and self.file == None:
+        if random.randint(0, 200) < self.epsilon and self.file == None:
             move = random.randint(0, 2)
             final_move[move] = 1
         else:
@@ -164,7 +101,7 @@ class Agent:
             prediction = self.model(state0)
             move = torch.argmax(prediction).item()
             final_move[move] = 1
-        if self.n_cleared_lines % 100 == 0 and self.n_cleared_lines != 0:
+        if self.n_cleared_lines_total % 100 == 0 and self.n_cleared_lines_total != 0:
             name = f"model_gamma{self.gamma}_lr{LR}_method-{self.method}.pth"
             self.model.save(file_name=name)
         return final_move

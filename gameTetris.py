@@ -1,17 +1,18 @@
 import pygame
 from enum import Enum
 import numpy as np
-
-# pygame.init()
-# font = pygame.font.Font('arial.ttf', 25)
-# font = pygame.font.SysFont('arial', 25)
+ui_toggle = True
+if ui_toggle:
+    pygame.init()
+    font = pygame.font.Font('arial.ttf', 25)
+    font = pygame.font.SysFont('arial', 25)
 
 
 class Actions(Enum):
     NOTHING = 0
     RIGHT = 1
     LEFT = 2
-    ROTATE = 3
+    # ROTATE = 3
 
 
 # rgb colors
@@ -27,20 +28,21 @@ SPEED = 100
 
 
 class TetrisAI:
-    def __init__(self, width: int = 6, height: int = 30):
+    def __init__(self, width: int = 10, height: int = 10):
 
         # define size of game board
         self.width = width
         self.height = height
+        
+        if ui_toggle:
+            # setup ui properties
+            self.block_size = BLOCK_SIZE
+            self.display = pygame.display.set_mode(
+                (BLOCK_SIZE*self.width, BLOCK_SIZE*self.height)
+            )
 
-        # setup ui properties
-        # self.block_size = BLOCK_SIZE
-        # self.display = pygame.display.set_mode(
-        #     (BLOCK_SIZE*self.width, BLOCK_SIZE*self.height)
-        # )
-
-        # pygame.display.set_caption('Tetris')
-        # self.clock = pygame.time.Clock()
+            pygame.display.set_caption('Tetris')
+            self.clock = pygame.time.Clock()
 
         self.reset()
         self.n_cleared_lines_total = 0
@@ -65,10 +67,11 @@ class TetrisAI:
     def play_step(self, action):
         self.frame_iteration += 1
         # 1. collect user input
-        # for event in pygame.event.get():
-        #     if event.type == pygame.QUIT:
-        #         pygame.quit()
-        #         quit()
+        if ui_toggle:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    quit()
 
         # 2. move
         self._move(action)
@@ -85,13 +88,14 @@ class TetrisAI:
 
         if self._check_game_over():
             game_over = True
-            reward -= 1
+            reward -= 100
 
             return reward, game_over, self.score
 
+        if ui_toggle:
         # 5. update ui and clock
-        # self._update_ui()
-        # self.clock.tick(SPEED)
+            self._update_ui()
+            self.clock.tick(SPEED)
         # 6. return game over and score
         return reward, game_over, self.score
 
@@ -202,9 +206,9 @@ class TetrisAI:
     def _new_shape(self):
         """Create a new shape above the view"""
         self.shape = np.array([
-                (self.width//2, self.height+1),
-                (self.width//2+1, self.height+1),
-                (self.width//2-1, self.height+1),
+                # (self.width//2, self.height+1),
+                # (self.width//2+1, self.height+1),
+                # (self.width//2-1, self.height+1),
                 (self.width//2, self.height)
             ],
             dtype=[('x', np.int8), ('y', np.int8)]
