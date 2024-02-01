@@ -98,7 +98,7 @@ class Agent:
         log_probs = self.model(state)
 
         # tradeoff exploration / exploitation
-        exploit = True
+        exploit = random.randint(0,1) < self.epsilon
 
         if self.total_cleared_lines % 100 == 0 and self.total_cleared_lines != 0:
             name = f"model_gamma{self.gamma}_lr{LR}_method-{self.method}.pth"
