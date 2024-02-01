@@ -23,11 +23,11 @@ class Agent:
         self.file = file
 
         # num of states, hidden layer size, num of actions
-        self.model = Linear_QNet(100, 512, 6, 4, file=self.file).to(self.device)
+        self.model = Linear_QNet(20, 512, 4, 4, file=self.file).to(self.device)
         self.trainer = QTrainer(self.model, lr=LR, gamma=self.gamma)
 
         # choices are simple, medium, full
-        self.method = "full"
+        self.method = "medium"
 
     def get_state(self, game: TetrisAI) -> torch.Tensor:
         """
