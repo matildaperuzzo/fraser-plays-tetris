@@ -4,7 +4,8 @@ import torch.optim as optim
 import torch.nn.functional as F
 import os
 import random
-import numpy as np
+
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 class ReplayBuffer:
     def __init__(self, capacity):
@@ -21,21 +22,20 @@ class ReplayBuffer:
 
 
 class Linear_QNet(nn.Module):
-    def __init__(self,input_size,hidden_size, layer_number, output_size, file = None):
+    def __init__(self, input_size, hidden_size, layer_number, output_size, file=None):
         super().__init__()
         self.norm0 = nn.LayerNorm(input_size)
-        self.embed_layer = nn.Linear(input_size,hidden_size)
+        self.embed_layer = nn.Linear(input_size, hidden_size)
         self.norm1 = nn.LayerNorm(hidden_size)
-        self.linear_lat1 = nn.ModuleList([nn.Linear(hidden_size,hidden_size) for i in range(layer_number)])
-        self.linear_lat2 = nn.ModuleList([nn.Linear(hidden_size,hidden_size) for i in range(layer_number)])
-        self.head_layer = nn.Linear(hidden_size,output_size)
+        self.linear_lat1 = nn.ModuleList([nn.Linear(hidden_size, hidden_size) for i in range(layer_number)])
+        self.linear_lat2 = nn.ModuleList([nn.Linear(hidden_size, hidden_size) for i in range(layer_number)])
+        self.head_layer = nn.Linear(hidden_size, output_size)
 
         if file:
             self.load(file)
 
+    def forward(self, x):
 
-    def forward(self,x):
-        x = self.norm0(x)
         x = self.embed_layer(x)
         for layer1,layer2 in zip(self.linear_lat1,self.linear_lat2):
             x = self.norm1(x)
@@ -43,7 +43,7 @@ class Linear_QNet(nn.Module):
             x = layer2(x)
         x = self.norm1(x)
         x = self.head_layer(x)
-        return x
+        return F.log_softmax(x, dim=-1)
     
     def save(self,file_name='model.pth'):
         model_folder_path = './model'
@@ -65,20 +65,16 @@ class QTrainer:
         self.optimizer = optim.Adam(model.parameters(),lr=self.lr)
         self.criterion = nn.MSELoss()
 
-    def train_step(self,state,action,reward,next_state,game_over):
-        state = torch.tensor(np.array(state),dtype=torch.float)
-        next_state = torch.tensor(np.array(next_state),dtype=torch.float)
-        action = torch.tensor(np.array(action),dtype=torch.float)
-        reward = torch.tensor(np.array(reward),dtype=torch.float)
+    def train_step(self, state, action, reward, next_state, game_over):
         # (n, x)
         # n = 1
         if state.ndim == 1:
             # return
             # (1, x)
-            state = torch.unsqueeze(state,0)
-            next_state = torch.unsqueeze(next_state,0)
-            action = torch.unsqueeze(action,0)
-            reward = torch.unsqueeze(reward,0)
+            state = torch.unsqueeze(state, 0)
+            next_state = torch.unsqueeze(next_state, 0)
+            action = torch.unsqueeze(action, 0)
+            reward = torch.unsqueeze(reward, 0)
             game_over = (game_over,)
 
         # 1: predicted Q values with current state

@@ -8,22 +8,28 @@ from helper import plot
 
 MAX_MEMORY = 100_000
 BATCH_SIZE = 1000
-LR = 0.001
+LR = 0.01
+
 
 class Agent:
 
-    def __init__(self,file = None):
+    def __init__(self, file=None):
+        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         self.n_games = 0
-        self.epsilon = 0 # randomness
+        self.epsilon = 0  # randomness
         self.n_cleared_lines = 0
-        self.gamma = 0.9 # discount rate, must be smaller than 1
-        self.memory = deque(maxlen=MAX_MEMORY) # popleft()
+        self.gamma = 0.9  # discount rate, must be smaller than 1
+        self.memory = deque(maxlen=MAX_MEMORY)  # popleft()
         self.file = file
-        self.model = Linear_QNet(12, 512, 4, 4, file = self.file) #num of states, hidden layer size, num of actions
-        self.trainer = QTrainer(self.model, lr=LR, gamma=self.gamma)
-        self.method = "medium" #choices are simple, medium, full
 
-    def get_state(self, game: TetrisAI) -> np.ndarray:
+        # num of states, hidden layer size, num of actions
+        self.model = Linear_QNet(180, 512, 6, 4, file=self.file).to(self.device)
+        self.trainer = QTrainer(self.model, lr=LR, gamma=self.gamma)
+
+        # choices are simple, medium, full
+        self.method = "full"
+
+    def get_state(self, game: TetrisAI) -> torch.Tensor:
         """
         State:
         # How many of the shape blocks fit into the placed blocks perfectly (number of blocks in shape)
@@ -31,39 +37,12 @@ class Agent:
         # distance from the bottom
 
         """
-        state = []
 
         method = self.method
-        self.n_cleared_lines = game.n_cleared_lines_total
+        self.n_cleared_lines = game.total_cleared_lines
 
         if method == "medium":
-            #find unique x values
-
-            xPoints = game.x[np.argsort(game.y)]
-            yPoints = game.y[np.argsort(game.y)]
-            unique_x, indices = np.unique(xPoints, return_index=True)
-            unique_y = yPoints[indices]
-            unique_x = unique_x[np.argsort(unique_x)]
-            unique_y = unique_y[np.argsort(unique_x)]
-
-            unique_y[unique_y>game.height] = game.height
-
-            top = np.zeros(game.width)+game.height
-            top[unique_x] = unique_y
-
-            bottom = np.zeros(game.width)
-            for i in range(game.width):
-                v = game.placedBlocks[i]
-                ind = np.where(v == 1)[0]
-                if len(ind) == 0:
-                    ind = 0
-                else:
-                    ind = ind[-1]
-                bottom[i] = ind
-            top = top - game.height
-            bottom = bottom - min(bottom)
-            state = np.concatenate((top,bottom))
-                
+            state = torch.concatenate((game.x,game.y,game.placedBlocks[:,:4].flatten()))
 
         if method == "simple":
             try:
@@ -152,22 +131,15 @@ class Agent:
     def train_short_memory(self, state, action, reward, next_state, done):
         self.trainer.train_step(state, action, reward, next_state, done)
 
-    def get_action(self, state):
-        # random moves: tradeoff exploration / exploitation
-        self.epsilon = 500 - self.n_cleared_lines
-        final_move = [0, 0, 0, 0]
-        if random.randint(0, 1000) < self.epsilon and self.file == None:
-            move = random.randint(0, 2)
-            final_move[move] = 1
-        else:
-            state0 = torch.tensor(state, dtype=torch.float)
-            prediction = self.model(state0)
-            move = torch.argmax(prediction).item()
-            final_move[move] = 1
-        if self.n_cleared_lines % 100 == 0 and self.n_cleared_lines != 0:
-            name = f"model_gamma{self.gamma}_lr{LR}_method-{self.method}.pth"
-            self.model.save(file_name=name)
-        return final_move
+    def get_action(self, state: torch.Tensor) -> torch.Tensor:
+        log_probs = self.model(state)
+
+        # tradeoff exploration / exploitation
+        exploit = True
+
+        return torch.multinomial(
+            log_probs.exp() if exploit else torch.ones_like(log_probs),
+        num_samples=1).squeeze(dim=-1)
 
 
 def train(file = None):
@@ -185,34 +157,35 @@ def train(file = None):
         final_move = agent.get_action(state_old)
 
         # perform move and get new state
-        reward, done, score = game.play_step(final_move)
+        game.play_step(final_move)
         state_new = agent.get_state(game)
-        if reward != 0:
-            print(reward)
+        if game.reward != 0:
+            print(game.reward)  # this is zero when the block is falling
 
-        # train short memory
-        agent.train_short_memory(state_old, final_move, reward, state_new, done)
+            # train short memory
+            agent.train_short_memory(state_old, final_move, game.reward, state_new, game.done)
 
         # remember
-        agent.remember(state_old, final_move, reward, state_new, done)
+        agent.remember(state_old, final_move, game.reward, state_new, game.done)
 
-        if done:
-            # train long memory, plot result
-            game.reset()
+        if game.done:
             agent.n_games += 1
-            agent.train_long_memory()
+            # train long memory, plot result
+            #agent.train_long_memory()
 
-            if score > record:
-                record = score
+            if game.score > record:
+                record = game.score
                 agent.model.save()
             
-            print('Game', agent.n_games, 'Score', score, 'Record', record)
+            print(f'Game {agent.n_games} Score {game.score} Record {record}')
 
-            plot_scores.append(score)
-            total_score += score
+            plot_scores.append(game.score)
+            total_score += game.score
             mean_score = total_score / agent.n_games
             plot_mean_scores.append(mean_score)
             plot(plot_scores, plot_mean_scores)
+
+            game.reset()
 
 def get_distance_count(self,shape, game):
     #find points in shape different x values, selecting the lowest point
