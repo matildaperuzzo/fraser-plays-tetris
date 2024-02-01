@@ -2,8 +2,8 @@ import pygame
 from enum import Enum
 import numpy as np
 
-pygame.init()
-font = pygame.font.Font('arial.ttf', 25)
+# pygame.init()
+# font = pygame.font.Font('arial.ttf', 25)
 # font = pygame.font.SysFont('arial', 25)
 
 
@@ -34,13 +34,13 @@ class TetrisAI:
         self.height = height
 
         # setup ui properties
-        self.block_size = BLOCK_SIZE
-        self.display = pygame.display.set_mode(
-            (BLOCK_SIZE*self.width, BLOCK_SIZE*self.height)
-        )
+        # self.block_size = BLOCK_SIZE
+        # self.display = pygame.display.set_mode(
+        #     (BLOCK_SIZE*self.width, BLOCK_SIZE*self.height)
+        # )
 
-        pygame.display.set_caption('Tetris')
-        self.clock = pygame.time.Clock()
+        # pygame.display.set_caption('Tetris')
+        # self.clock = pygame.time.Clock()
 
         self.reset()
         self.n_cleared_lines_total = 0
@@ -55,7 +55,6 @@ class TetrisAI:
         self.placedBlocks = np.zeros((self.width, self.height), dtype=np.int8)
 
         self.frame_iteration = 0
-        self._update_ui()
 
     @property
     def state(self):
@@ -66,10 +65,10 @@ class TetrisAI:
     def play_step(self, action):
         self.frame_iteration += 1
         # 1. collect user input
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                pygame.quit()
-                quit()
+        # for event in pygame.event.get():
+        #     if event.type == pygame.QUIT:
+        #         pygame.quit()
+        #         quit()
 
         # 2. move
         self._move(action)
@@ -91,8 +90,8 @@ class TetrisAI:
             return reward, game_over, self.score
 
         # 5. update ui and clock
-        self._update_ui()
-        self.clock.tick(SPEED)
+        # self._update_ui()
+        # self.clock.tick(SPEED)
         # 6. return game over and score
         return reward, game_over, self.score
 

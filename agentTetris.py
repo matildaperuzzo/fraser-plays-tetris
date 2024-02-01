@@ -8,7 +8,7 @@ from helper import plot
 
 MAX_MEMORY = 100_000
 BATCH_SIZE = 1000
-LR = 0.01
+LR = 0.001
 
 class Agent:
 
@@ -19,9 +19,9 @@ class Agent:
         self.gamma = 0.9 # discount rate, must be smaller than 1
         self.memory = deque(maxlen=MAX_MEMORY) # popleft()
         self.file = file
-        self.model = Linear_QNet(180, 320, 6, 4, file = self.file) #num of states, hidden layer size, num of actions
+        self.model = Linear_QNet(12, 512, 4, 4, file = self.file) #num of states, hidden layer size, num of actions
         self.trainer = QTrainer(self.model, lr=LR, gamma=self.gamma)
-        self.method = "full" #choices are simple, medium, full
+        self.method = "medium" #choices are simple, medium, full
 
     def get_state(self, game: TetrisAI) -> np.ndarray:
         """
@@ -37,32 +37,34 @@ class Agent:
         self.n_cleared_lines = game.n_cleared_lines_total
 
         if method == "medium":
-            yPoints = []
-            xPoints = []
-            for point in game.shape:
-                if point.x not in xPoints:
-                    xPoints.append(point.x)
-                    yPoints.append(point.y)
-                else:
-                    if point.y < yPoints[xPoints.index(point.x)]:
-                        yPoints[xPoints.index(point.x)] = point.y
-            #get shape x,y coordinates
-            shapePos = [int(game.h//game.block_size) for i in range(int(game.w//game.block_size))]
-            for x,y in zip(xPoints,yPoints):
-                shapePos[int(x//game.block_size)] = y//game.block_size
+            #find unique x values
 
-            for i in shapePos:
-                state.append(i)
+            xPoints = game.x[np.argsort(game.y)]
+            yPoints = game.y[np.argsort(game.y)]
+            unique_x, indices = np.unique(xPoints, return_index=True)
+            unique_y = yPoints[indices]
+            unique_x = unique_x[np.argsort(unique_x)]
+            unique_y = unique_y[np.argsort(unique_x)]
 
-            for i in range(int(game.w//game.block_size)):
-                col = game.placedBlocks[i]
-                #find location of highest block in column
-                ind = np.where(col == 1)[0]
+            unique_y[unique_y>game.height] = game.height
+
+            top = np.zeros(game.width)+game.height
+            top[unique_x] = unique_y
+
+            bottom = np.zeros(game.width)
+            for i in range(game.width):
+                v = game.placedBlocks[i]
+                ind = np.where(v == 1)[0]
                 if len(ind) == 0:
                     ind = 0
                 else:
                     ind = ind[-1]
-                state.append(ind)
+                bottom[i] = ind
+            top = top - game.height
+            bottom = bottom - min(bottom)
+            state = np.concatenate((top,bottom))
+                
+
         if method == "simple":
             try:
                 shapeNothing = []
@@ -185,7 +187,7 @@ def train(file = None):
         # perform move and get new state
         reward, done, score = game.play_step(final_move)
         state_new = agent.get_state(game)
-        if reward > 0:
+        if reward != 0:
             print(reward)
 
         # train short memory
