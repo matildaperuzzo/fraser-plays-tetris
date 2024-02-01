@@ -26,8 +26,8 @@ class Linear_QNet(nn.Module):
         self.norm0 = nn.LayerNorm(input_size)
         self.embed_layer = nn.Linear(input_size,hidden_size)
         self.norm1 = nn.LayerNorm(hidden_size)
-        self.linear_lat1 = [nn.Linear(hidden_size,hidden_size) for i in range(layer_number)]
-        self.linear_lat2 = [nn.Linear(hidden_size,hidden_size) for i in range(layer_number)]
+        self.linear_lat1 = nn.ModuleList([nn.Linear(hidden_size,hidden_size) for i in range(layer_number)])
+        self.linear_lat2 = nn.ModuleList([nn.Linear(hidden_size,hidden_size) for i in range(layer_number)])
         self.head_layer = nn.Linear(hidden_size,output_size)
 
         if file:
