@@ -20,30 +20,47 @@ class ReplayBuffer:
     def sample(self, batch_size):
         return random.sample(self.buffer, batch_size)
 
+class FeedForwardBlock(nn.Module):
+    def __init__(self, embed_dim: int):
+        super().__init__()
+
+        self.norm = nn.LayerNorm(embed_dim)
+
+        self.fc1 = nn.Linear(embed_dim, embed_dim)
+        self.fc2 = nn.Linear(embed_dim, embed_dim)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+
+        residual = x
+        x = self.norm(x)
+        x = F.gelu(self.fc1(x))
+        x = self.fc2(x)
+        x = residual + x
+
+        return x
 
 class Linear_QNet(nn.Module):
     def __init__(self, input_size, hidden_size, layer_number, output_size, file=None):
         super().__init__()
-        self.norm0 = nn.LayerNorm(input_size)
-        self.embed_layer = nn.Linear(input_size, hidden_size)
-        self.norm1 = nn.LayerNorm(hidden_size)
-        self.linear_lat1 = nn.ModuleList([nn.Linear(hidden_size, hidden_size) for i in range(layer_number)])
-        self.linear_lat2 = nn.ModuleList([nn.Linear(hidden_size, hidden_size) for i in range(layer_number)])
-        self.head_layer = nn.Linear(hidden_size, output_size)
+
+        self.embed = nn.Linear(input_size, hidden_size)
+        self.layers = nn.ModuleList([FeedForwardBlock(hidden_size) for i in range(layer_number)])
+        
+        self.norm = nn.LayerNorm(hidden_size)
+        self.head = nn.Linear(hidden_size, output_size)
 
         if file:
             self.load(file)
 
     def forward(self, x):
+        x = self.embed(x)
 
-        x = self.embed_layer(x)
-        for layer1,layer2 in zip(self.linear_lat1,self.linear_lat2):
-            x = self.norm1(x)
-            x = F.gelu(layer1(x))
-            x = layer2(x)
-        x = self.norm1(x)
-        x = self.head_layer(x)
-        return F.log_softmax(x, dim=-1)
+        for layer in self.layers:
+            x = layer(x)
+        
+        x = self.norm(F.gelu(x))
+        x = self.head(x)
+        return F.log_softmax(x/10, dim=-1)
     
     def save(self,file_name='model.pth'):
         model_folder_path = './model'
@@ -62,7 +79,7 @@ class QTrainer:
         self.lr = lr
         self.gamma = gamma
         self.model = model
-        self.optimizer = optim.Adam(model.parameters(),lr=self.lr)
+        self.optimizer = optim.AdamW(model.parameters(),lr=self.lr)
         self.criterion = nn.MSELoss()
 
     def train_step(self, state, action, reward, next_state, game_over):
