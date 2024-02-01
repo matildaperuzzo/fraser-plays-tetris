@@ -42,74 +42,37 @@ class Agent:
         self.n_cleared_lines = game.total_cleared_lines
 
         if method == "medium":
-            state = torch.concatenate((game.x,game.y,game.placedBlocks[:,:4].flatten()))
+            #find unique x values
+
+            xPoints = game.x[np.argsort(game.y)]
+            yPoints = game.y[np.argsort(game.y)]
+            unique_x, indices = np.unique(xPoints, return_index=True)
+            unique_y = yPoints[indices]
+            unique_x = unique_x[np.argsort(unique_x)]
+            unique_y = unique_y[np.argsort(unique_x)]
+
+            unique_y[unique_y>game.height] = game.height
+
+            top = np.zeros(game.width)+game.height
+            top[unique_x] = unique_y
+
+            bottom = np.zeros(game.width)
+            for i in range(game.width):
+                v = game.placedBlocks[i]
+                ind = np.where(v == 1)[0]
+                if len(ind) == 0:
+                    ind = 0
+                else:
+                    ind = ind[-1]
+                bottom[i] = ind
+            bottom = bottom
+            state = np.concatenate((top,bottom))
+                
 
         if method == "simple":
-            try:
-                shapeNothing = []
-                for point in game.shape:
-                    x = point.x
-                    y = point.y - game.block_size
-                    shapeNothing.append(Point(x,y))
-                count_of_most_common, min_dist = get_distance_count(self,shapeNothing, game)
-                state.append(count_of_most_common)
-                state.append(min_dist)
-                state.append(game.centerPoint.y//game.block_size)
-            except:
-                state.append(0)
-                state.append(0)
-                state.append(0)
-
-            shapeLeft = []
-            for point in game.shape:
-                x = point.x - game.block_size
-                y = point.y - game.block_size
-                shapeLeft.append(Point(x,y))
-            
-            try:
-                count_of_most_common, min_dist = get_distance_count(self,shapeLeft, game)
-                state.append(count_of_most_common)
-                state.append(min_dist)
-                state.append(game.centerPoint.y//game.block_size)                    
-                
-            except:
-                state.append(0)
-                state.append(0)
-                state.append(0)
-
-            shapeRight = []
-            for point in game.shape:
-                x = point.x + game.block_size
-                y = point.y - game.block_size
-                shapeRight.append(Point(x,y))
-            
-            try:
-                count_of_most_common, min_dist = get_distance_count(self,shapeRight, game)
-                state.append(count_of_most_common)
-                state.append(min_dist)
-                state.append(game.centerPoint.y//game.block_size)
-
-            except:
-                state.append(0)
-                state.append(0)
-                state.append(0)
-
-            shapeRotate = game.rotate_shape(game.shape, (game.centerPoint.x, game.centerPoint.y))
-            for i,point in enumerate(shapeRotate):
-                x = point.x
-                y = point.y - game.block_size
-                shapeRotate[i] = Point(x,y)
-
-            try:
-                count_of_most_common, min_dist = get_distance_count(self,shapeRotate, game)
-                state.append(count_of_most_common)
-                state.append(min_dist)
-                state.append(game.centerPoint.y//game.block_size)
-
-            except:
-                state.append(0)
-                state.append(0)
-                state.append(0) 
+            x = game.x
+            y = game.y
+            game.placedBlocks[x]
 
         if method == "full":
             state = game.state
@@ -137,9 +100,13 @@ class Agent:
         # tradeoff exploration / exploitation
         exploit = True
 
+        if self.n_cleared_lines_total % 100 == 0 and self.n_cleared_lines_total != 0:
+            name = f"model_gamma{self.gamma}_lr{LR}_method-{self.method}.pth"
+            self.model.save(file_name=name)
+
         return torch.multinomial(
             log_probs.exp() if exploit else torch.ones_like(log_probs),
-        num_samples=1).squeeze(dim=-1)
+            num_samples=1).squeeze(dim=-1)
 
 
 def train(file = None):

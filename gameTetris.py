@@ -1,9 +1,13 @@
 import pygame
 from enum import Enum
 import torch
+import numpy as np
 
-pygame.init()
-font = pygame.font.SysFont('arial', 25)
+ui_toggle = True
+if ui_toggle:
+    pygame.init()
+    font = pygame.font.Font('arial.ttf', 25)
+    font = pygame.font.SysFont('arial', 25)
 
 
 class Actions(Enum):
@@ -26,29 +30,28 @@ SPEED = 100
 
 
 class TetrisAI:
-    def __init__(self, width: int = 6, height: int = 30):
+    def __init__(self, width: int = 10, height: int = 10):
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
         # define size of game board
         self.width = width
         self.height = height
+        
+        if ui_toggle:  # setup ui properties
+            self.block_size = BLOCK_SIZE
+            self.display = pygame.display.set_mode(
+                (BLOCK_SIZE*self.width, BLOCK_SIZE*self.height)
+            )
+            pygame.display.set_caption('Tetris')
+            self.clock = pygame.time.Clock()
 
         self.placedBlocks = torch.zeros((self.width, self.height), dtype=torch.float, device=self.device)
         self._reward = torch.tensor(0, dtype=torch.float, device=self.device)
 
         # define starting shape
-        self._x = torch.tensor([self.width//2, self.width//2+1, self.width//2-1, self.width//2], dtype=torch.int, device=self.device)
-        self._y = torch.tensor([self.height+1, self.height+1, self.height+1, self.height], dtype=torch.int, device=self.device)
+        self._x = torch.tensor([self.width//2], dtype=torch.int, device=self.device)
+        self._y = torch.tensor([self.height], dtype=torch.int, device=self.device)
         self.shape = {"x": self._x.clone(), "y": self._y.clone() }
-
-        # setup ui properties
-        # self.block_size = BLOCK_SIZE
-        # self.display = pygame.display.set_mode(
-        #     (BLOCK_SIZE*self.width, BLOCK_SIZE*self.height)
-        # )
-
-        # pygame.display.set_caption('Tetris')
-        # self.clock = pygame.time.Clock()
 
         self.total_cleared_lines = 0
         self.reset()
@@ -83,10 +86,11 @@ class TetrisAI:
         self.reward = 0  # reset reward at each step
 
         # 1. collect user input
-        # for event in pygame.event.get():
-        #     if event.type == pygame.QUIT:
-        #         pygame.quit()
-        #         quit()
+        if ui_toggle:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    quit()
 
         # 2. move
         self._move(action)
@@ -94,9 +98,9 @@ class TetrisAI:
         # 3. check if game over
         self._check_game_over()
 
-        # 5. update ui and clock
-        # self._update_ui()
-        # self.clock.tick(SPEED)
+        if ui_toggle:  # 5. update ui and clock
+            self._update_ui()
+            self.clock.tick(SPEED)
 
     def _update_ui(self):
         self.display.fill(BLACK)
@@ -210,6 +214,7 @@ class TetrisAI:
         """Create a new shape above the view"""
         self.shape["x"] = self._x.clone()
         self.shape["y"] = self._y.clone()
+
         return self.shape
 
     def _check_game_over(self):
