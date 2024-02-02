@@ -188,7 +188,9 @@ class Tetris:
 
         # place shape
         self.placedBlocks[x, y] = 1
-        self.get_reward()
+
+        # reward for filling out board horizontally
+        self.reward += 1 if self.y.min() == 0 else -1
 
     def _clear_rows(self):
         isfull = self.placedBlocks.all(axis=0)
@@ -201,6 +203,9 @@ class Tetris:
 
         self.score += num_full
         self.total_cleared_lines += num_full
+
+        # reward for clearing rows
+        self.reward += torch.log10(num_full+1)
   
     def _new_shape(self):
         """Create a new shape above the view"""
@@ -230,16 +235,3 @@ class Tetris:
 
                 self.x = x_rotated
                 self.y = y_rotated
-
-    def get_reward(self):
-        
-        # reward for placing a block lower in the game board
-        # reward = 1/(1+self.y.max())
-        # if self.y.max() < self.height-6:
-        #     self.reward += reward
-        
-        # reward for filling out board horizontally
-        if self.y.min() == 0:
-            self.reward += 1
-        else:
-            self.reward -= 1
