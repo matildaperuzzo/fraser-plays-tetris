@@ -20,7 +20,7 @@ def train(learning_rate: float = 0.001, temperature: float = 1.0, ui: bool = Tru
     record = 0
 
     game = Tetris(ui=ui)
-    model = Fraser(hidden_size=6, layer_number=6, num_actions=3).to(device)
+    model = Fraser(hidden_size=32, layer_number=6, num_actions=3).to(device)
     optimizer = optim.AdamW(model.parameters(), lr=learning_rate)
 
     while True:
@@ -32,9 +32,6 @@ def train(learning_rate: float = 0.001, temperature: float = 1.0, ui: bool = Tru
 
         # perform action and calculate loss
         game.play_step(action)
-        if game.reward != 0:
-            print(f"Action: {action} Reward: {game.reward}")
-
         loss = -log_probs[action] * game.reward
 
         # backpropagation

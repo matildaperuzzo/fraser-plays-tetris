@@ -234,7 +234,12 @@ class Tetris:
     def get_reward(self):
         
         # reward for placing a block lower in the game board
-        self.reward += 1/(1+self.y.max())
+        # reward = 1/(1+self.y.max())
+        # if self.y.max() < self.height-6:
+        #     self.reward += reward
         
         # reward for filling out board horizontally
-        self.reward += (self.placedBlocks.sum(axis=0)/(1+self.height_range)).mean()
+        if self.y.min() == 0:
+            self.reward += 1
+        else:
+            self.reward -= 1
