@@ -56,5 +56,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Train a tetris agent")
     parser.add_argument("--file", type=str, help="File to load model from")
     parser.add_argument("--ui", action="store_true", help="Use the UI")
+    parser.add_argument("--learning_rate", type=float, default=0.001, help="Learning rate")
+    parser.add_argument("--temperature", type=float, default=1.0, help="Temperature for action sampling")
 
     train(**vars(parser.parse_args()))
