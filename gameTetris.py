@@ -2,13 +2,6 @@ import pygame
 from enum import Enum
 import torch
 
-ui_toggle = True
-if ui_toggle:
-    pygame.init()
-    font = pygame.font.Font('arial.ttf', 25)
-    font = pygame.font.SysFont('arial', 25)
-
-
 class Actions(Enum):
     NOTHING = 0
     RIGHT = 1
@@ -29,14 +22,18 @@ SPEED = 100
 
 
 class TetrisAI:
-    def __init__(self, width: int = 10, height: int = 10):
+    def __init__(self, width: int = 10, height: int = 10, ui: bool = True):
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
         # define size of game board
         self.width = width
         self.height = height
         
-        if ui_toggle:  # setup ui properties
+        self.ui = ui
+        if self.ui:  # setup ui properties
+            pygame.init()
+            self.font = pygame.font.SysFont('arial', 25)
+
             self.block_size = BLOCK_SIZE
             self.display = pygame.display.set_mode(
                 (BLOCK_SIZE*self.width, BLOCK_SIZE*self.height)
@@ -85,7 +82,7 @@ class TetrisAI:
         self.reward = 0  # reset reward at each step
 
         # 1. collect user input
-        if ui_toggle:
+        if self.ui:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     pygame.quit()
@@ -97,7 +94,7 @@ class TetrisAI:
         # 3. check if game over
         self._check_game_over()
 
-        if ui_toggle:  # 5. update ui and clock
+        if self.ui:  # 5. update ui and clock
             self._update_ui()
             self.clock.tick(SPEED)
 
@@ -117,7 +114,7 @@ class TetrisAI:
         x, y = self.shape["x"][0], self.shape["y"][0]
         pygame.draw.rect(self.display, BLUE1, pygame.Rect(x * BLOCK_SIZE, (self.height-y-1) * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE))
 
-        text = font.render(f"Score: {self.score}", True, WHITE)
+        text = self.font.render(f"Score: {self.score}", True, WHITE)
         self.display.blit(text, [0, 0])
         pygame.display.flip()
 

@@ -1,3 +1,5 @@
+import argparse
+
 import torch
 import random
 import numpy as np
@@ -23,11 +25,11 @@ class Agent:
         self.file = file
 
         # num of states, hidden layer size, num of actions
-        self.model = Linear_QNet(20, 512, 4, 4, file=self.file).to(self.device)
+        self.model = Linear_QNet(100, 512, 4, 4, file=self.file).to(self.device)
         self.trainer = QTrainer(self.model, lr=LR, gamma=self.gamma)
 
         # choices are simple, medium, full
-        self.method = "medium"
+        self.method = "full"
 
     def get_state(self, game: TetrisAI) -> torch.Tensor:
         """
@@ -109,13 +111,13 @@ class Agent:
             num_samples=1).squeeze(dim=-1)
 
 
-def train(file = None):
+def train(file = None, ui:bool = True):
     plot_scores = []
     plot_mean_scores = []
     total_score = 0
     record = 0
-    agent = Agent(file = file)
-    game = TetrisAI()
+    agent = Agent(file=file)
+    game = TetrisAI(ui=ui)
     while True:
         # get old state
         state_old = agent.get_state(game)
@@ -189,5 +191,8 @@ def get_distance_count(self,shape, game):
 
 
 if __name__ == '__main__':
-    # train(file="model_gamma0.9_lr0.001_method-simple.pth")
-    train()
+    parser = argparse.ArgumentParser(description="Train a tetris agent")
+    parser.add_argument("--file", type=str, help="File to load model from")
+    parser.add_argument("--ui", action="store_true", help="Use the UI")
+
+    train(**vars(parser.parse_args()))
