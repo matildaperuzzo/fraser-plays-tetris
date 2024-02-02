@@ -21,7 +21,7 @@ BLOCK_SIZE = 20
 SPEED = 100
 
 
-class TetrisAI:
+class Tetris:
     def __init__(self, width: int = 10, height: int = 10, ui: bool = True):
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
@@ -41,7 +41,7 @@ class TetrisAI:
             pygame.display.set_caption('Tetris')
             self.clock = pygame.time.Clock()
 
-        self.placedBlocks = torch.zeros((self.width, self.height), dtype=torch.float, device=self.device)
+        self.placedBlocks = torch.zeros((self.width, self.height), dtype=torch.int, device=self.device)
         self._reward = torch.tensor(0, dtype=torch.float, device=self.device)
 
         # define starting shape
@@ -69,7 +69,6 @@ class TetrisAI:
 
         # init game stats
         self.score = 0
-        self.frame_iteration = 0
 
     @property
     def state(self):
@@ -77,8 +76,7 @@ class TetrisAI:
         state[self.x[self.shape_inview], self.y[self.shape_inview]] = 2
         return state
 
-    def play_step(self, action: Actions):
-        self.frame_iteration += 1
+    def play_step(self, action: torch.Tensor):
         self.reward = 0  # reset reward at each step
 
         # 1. collect user input
@@ -94,7 +92,7 @@ class TetrisAI:
         # 3. check if game over
         self._check_game_over()
 
-        if self.ui:  # 5. update ui and clock
+        if self.ui:  # 4. update ui and clock
             self._update_ui()
             self.clock.tick(SPEED)
 
@@ -118,7 +116,7 @@ class TetrisAI:
         self.display.blit(text, [0, 0])
         pygame.display.flip()
 
-    def _move(self, action: Actions):
+    def _move(self, action: torch.Tensor):
 
         # shape points in view
         x = self.x[self.shape_inview]
@@ -216,8 +214,6 @@ class TetrisAI:
     def _check_game_over(self):
         """check if any of the placed blocks hit the top of the screen"""
         self.done = self.placedBlocks[:, -1].any()
-        if self.done:
-            self.get_reward("game_over")
         return self.done
 
     def rotate_shape(self):
@@ -226,12 +222,9 @@ class TetrisAI:
         x_median = self.x.median()
         y_median = self.y.median()
 
-        x_rel = self.x - x_median
-        y_rel = self.y - y_median
-
         # rotate shape
-        x_rotated = x_median - y_rel
-        y_rotated = y_median + x_rel
+        x_rotated = x_median - (self.y - y_median)
+        y_rotated = y_median + (self.x - x_median)
 
         if x_rotated.max() < self.width-1 and x_rotated.min() > 0:  # boundary check
             # check for collisions
@@ -250,13 +243,12 @@ class TetrisAI:
         
             # find highest point in the shape
             highest_shape = self.y.max()
-            self.reward += highest_placed - highest_shape
+            diff = highest_placed - highest_shape
+            if diff > 0:
+                self.reward += diff
         
         elif case == "line_clear":
             self.reward += 10*self.current_cleared_lines
-
-        elif case == "game_over":
-            self.reward -= 100
         
         else:
             raise ValueError(f"Invalid reward type: {type}")
