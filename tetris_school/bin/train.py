@@ -7,7 +7,7 @@ import torch.optim as optim
 
 from tetris_school.games import Tetris
 from tetris_school.model import Fraser
-from helper import plot
+from tetris_school.utils import plot
 
 
 def train(learning_rate: float = 0.001, temperature: float = 1.0, ui: bool = True, file: Optional[str] = None):
