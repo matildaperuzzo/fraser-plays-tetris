@@ -44,6 +44,9 @@ def train(learning_rate: float = 0.001, temperature: float = 1.0, ui: bool = Tru
             print(f'Game {n_games} Score {game.score} Record {record}')
 
             plot_scores.append(game.score)
+            if game.score > record:
+                record = game.score
+
             total_score += game.score
             mean_score = total_score / n_games
             plot_mean_scores.append(mean_score)
