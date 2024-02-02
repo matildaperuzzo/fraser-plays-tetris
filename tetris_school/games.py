@@ -43,6 +43,7 @@ class Tetris:
 
         self.placedBlocks = torch.zeros((self.width, self.height), dtype=torch.int, device=self.device)
         self._reward = torch.tensor(0, dtype=torch.float, device=self.device)
+        self.height_range = torch.arange(self.height, device=self.device)
 
         # define starting shape
         self._x = torch.tensor([self.width//2], dtype=torch.int, device=self.device)
@@ -180,7 +181,6 @@ class Tetris:
         self.shape["y"] = value
 
     def _place_shape(self):
-        self.get_reward("shape_placement")
 
         # shape points in view
         x = self.x[self.shape_inview]
@@ -188,6 +188,7 @@ class Tetris:
 
         # place shape
         self.placedBlocks[x, y] = 1
+        self.get_reward()
 
     def _clear_rows(self):
         isfull = self.placedBlocks.all(axis=0)
@@ -200,9 +201,6 @@ class Tetris:
 
         self.score += num_full
         self.total_cleared_lines += num_full
-
-        self.current_cleared_lines = num_full
-        self.get_reward("line_clear")
   
     def _new_shape(self):
         """Create a new shape above the view"""
@@ -233,22 +231,10 @@ class Tetris:
                 self.x = x_rotated
                 self.y = y_rotated
 
-    def get_reward(self, type:str):
-        case = type.lower()
+    def get_reward(self):
         
-        if case == "shape_placement":
-            # find highest point of in placed blocks
-            placed_idx = self.placedBlocks.argwhere()
-            highest_placed = placed_idx.max(axis=0).values[-1] if len(placed_idx) > 0 else 0
+        # reward for placing a block lower in the game board
+        self.reward += 1/(1+self.y.max())
         
-            # find highest point in the shape
-            highest_shape = self.y.max()
-            diff = highest_placed - highest_shape
-            if diff > 0:
-                self.reward += diff
-        
-        elif case == "line_clear":
-            self.reward += 10*self.current_cleared_lines
-        
-        else:
-            raise ValueError(f"Invalid reward type: {type}")
+        # reward for filling out board horizontally
+        self.reward += (self.placedBlocks.sum(axis=0)/(1+self.height_range)).mean()
