@@ -35,4 +35,6 @@ class Head(nn.Module):
         x = self.norm(x)
 
         representations = self.toaction(x)
+        if representations.ndim == 1:
+            representations = representations.unsqueeze(0).unsqueeze(1)
         return {'representations': representations, 'logits': representations.mean(axis=(0,1))}

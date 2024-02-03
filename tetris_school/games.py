@@ -22,7 +22,7 @@ SPEED = 100
 
 
 class Tetris:
-    def __init__(self, width: int = 10, height: int = 10, ui: bool = True):
+    def __init__(self, width: int = 5, height: int = 5, ui: bool = True):
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
         # define size of game board
@@ -190,7 +190,7 @@ class Tetris:
         self.placedBlocks[x, y] = 1
 
         # reward for filling out board horizontally
-        self.reward += 1 if self.y.min() == 0 else -1
+        # self.reward += 1 if self.y.min() == 0 else -1
 
     def _clear_rows(self):
         isfull = self.placedBlocks.all(axis=0)
@@ -217,6 +217,8 @@ class Tetris:
     def _check_game_over(self):
         """check if any of the placed blocks hit the top of the screen"""
         self.done = self.placedBlocks[:, -1].any()
+        #reward for game over
+        self.reward -= 10 if self.done else 0
         return self.done
 
     def rotate_shape(self):

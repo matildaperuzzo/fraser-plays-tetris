@@ -6,11 +6,11 @@ import torch.nn.functional as F
 import torch.optim as optim
 
 from tetris_school.games import Tetris
-from tetris_school.model import Fraser
+from tetris_school.model import Fraser, Jordan
 from tetris_school.utils import plot
 
 
-def train(learning_rate: float = 0.001, temperature: float = 1.0, ui: bool = True, file: Optional[str] = None):
+def train(learning_rate: float = 0.001, temperature: float = 10.0, ui: bool = True, file: Optional[str] = None):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
     plot_scores = []
@@ -20,7 +20,7 @@ def train(learning_rate: float = 0.001, temperature: float = 1.0, ui: bool = Tru
     record = 0
 
     game = Tetris(ui=ui)
-    model = Fraser(hidden_size=32, layer_number=6, num_actions=3).to(device)
+    model = Jordan(hidden_size=32, layer_number=6, input_size=2*game.state.shape[0], num_actions=3).to(device)
     optimizer = optim.AdamW(model.parameters(), lr=learning_rate)
 
     while True:
