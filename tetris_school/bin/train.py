@@ -52,6 +52,7 @@ def train(learning_rate: float = 0.001, temperature: float = 10.0, ui: bool = Tr
             plot_mean_scores.append(mean_score)
 
             plot(plot_scores, plot_mean_scores)
+            temperature *= 0.999
             game.reset()
 
 
