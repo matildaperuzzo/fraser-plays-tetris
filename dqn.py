@@ -1,8 +1,4 @@
-import gymnasium as gym
-from nes_py.wrappers import JoypadSpace
-from gym_tetris.actions import MOVEMENT
-import gym_tetris
-
+import gymnasium
 import math
 import random
 import torch.nn.functional as F
@@ -15,8 +11,8 @@ import torch.optim as optim
 
 from tetris_school.utils import ReplayMemory, Transition
 
-env = gym.make("CartPole-v1")
-# env = JoypadSpace(gym_tetris.make('TetrisA-v3'), MOVEMENT)
+env = gymnasium.make("ALE/Tetris-v5", obs_type="ram", frameskip=4)
+env = gymnasium.make("CartPole-v1")
 
 def state_transform(x):
     return x
@@ -101,23 +97,6 @@ def plot_durations():
     plt.savefig("plot.png")
     plt.close()
 
-
-######################################################################
-# Training loop
-# ^^^^^^^^^^^^^
-#
-# Finally, the code for training our model.
-#
-# Here, you can find an ``optimize_model`` function that performs a
-# single step of the optimization. It first samples a batch, concatenates
-# all the tensors into a single one, computes :math:`Q(s_t, a_t)` and
-# :math:`V(s_{t+1}) = \max_a Q(s_{t+1}, a)`, and combines them into our
-# loss. By definition we set :math:`V(s) = 0` if :math:`s` is a terminal
-# state. We also use a target network to compute :math:`V(s_{t+1})` for
-# added stability. The target network is updated at every step with a 
-# `soft update <https://arxiv.org/pdf/1509.02971.pdf>`__ controlled by 
-# the hyperparameter ``TAU``, which was previously defined.
-#
 
 def optimize_model():
     if len(memory) < BATCH_SIZE:
