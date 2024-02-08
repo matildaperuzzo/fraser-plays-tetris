@@ -40,9 +40,6 @@ class Jordan(nn.Module):
         self.norm = nn.LayerNorm(hidden_size)
         self.head = Head(hidden_size, num_actions=num_actions)
 
-        # store constant height range
-        self.register_buffer("height_range", torch.arange(input_size[1]))
-
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         x = self.state_transform(x)
 
@@ -54,9 +51,10 @@ class Jordan(nn.Module):
         return self.head(x)
 
     def state_transform(self, x: torch.Tensor) -> torch.Tensor:
+        height_range = torch.arange(x.size(2)).to(x.device)
 
-        floor = (self.height_range * (x == 1)).argmax(dim=-1)
-        cieling = (self.height_range * (x == 2)).argmax(dim=-1)
+        floor = (height_range * (x == 1)).argmax(dim=-1)
+        cieling = (height_range * (x == 2)).argmax(dim=-1)
 
         x = torch.cat([floor, cieling], dim=-1)
         return x.float()
