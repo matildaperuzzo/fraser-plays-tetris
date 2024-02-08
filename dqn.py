@@ -7,7 +7,7 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 
-from tetris_school.utils import ReplayMemory, Transition
+from tetris_school.utils import ReplayMemory, Transition, plot
 from tetris_school.model import Fraser
 from tetris_school.games import Tetris
 
@@ -51,14 +51,7 @@ number_of_lines = []
 scores = []
 
 
-def plot_durations():
-    plt.figure(1)
-    plt.xlabel('Episode')
-    plt.plot(number_of_lines, label='Number of lines')
-    plt.plot(scores, label='Score')
-    plt.legend()
-    plt.savefig("plot.png")
-    plt.close()
+
 
 
 def optimize_model():
@@ -149,5 +142,5 @@ for i_episode in range(num_episodes):
         print(f"Episode {i_episode}, action {action.item()}, reward {reward.item()}")
         if done:
             scores.append(info["score"].item())
-            plot_durations()
+            plot(scores)
             break

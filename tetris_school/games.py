@@ -22,12 +22,12 @@ class Tetris(gym.Env):
     metadata = {"render_modes": ["human"], "render_fps": 30}
     actions = Enum("Actions", "NOTHING RIGHT LEFT ROTATE", start=0)
 
-    def __init__(self, width: int = 5, height: int = 5, render_mode: Optional[str] = None, max_iter: int = 1000):
+    def __init__(self, width: int = 5, height: int = 5, render_mode: Optional[str] = None, max_score: int = 100):
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         
         assert render_mode is None or render_mode in self.metadata["render_modes"]
         self.render_mode = render_mode
-        self.max_iter = max_iter
+        self.max_score = max_score
 
         # define size of game board
         self.width = width
@@ -88,7 +88,7 @@ class Tetris(gym.Env):
     
     @property
     def truncated(self) -> bool:
-        return self.iter >= self.max_iter
+        return self.score >= self.max_score
     
     @property
     def done(self) -> Union[bool, torch.Tensor]:
