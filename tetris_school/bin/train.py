@@ -1,11 +1,11 @@
 import argparse
+from tqdm import tqdm
 import os
-from typing import Optional
+
 import torch
 import torch.nn.functional as F
 import torch.optim as optim
 
-from tqdm import tqdm
 from tetris_school.games import Tetris
 from tetris_school.model import Fraser, Jordan
 from tetris_school.utils import ReplayMemory, Transition, plot
@@ -24,7 +24,7 @@ def train(
     num_episodes: int = 600,
     batch_size: int = 128,
 ):
-    device = "cpu"  # torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     game = Tetris(render_mode="human" if ui else None, device=device)
 
     model = Fraser(hidden_size=32, layer_number=4, num_actions=game.action_space.n, input_size=game.width * game.height).to(device)
