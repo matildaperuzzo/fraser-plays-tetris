@@ -16,7 +16,6 @@ BLUE2 = (0, 100, 255)
 BLACK = (0, 0, 0)
 
 BLOCK_SIZE = 20
-SPEED = 100
 
 
 class Tetris(gym.Env):
@@ -46,7 +45,7 @@ class Tetris(gym.Env):
 
         self.placedBlocks = torch.zeros((self.width, self.height), dtype=torch.int, device=self.device)
         self._reward = torch.tensor(0, dtype=torch.float, device=self.device)
-        self.height_range = torch.arange(self.height, device=self.device)
+        self.height_range = torch.arange(self.height, dtype=torch.int, device=self.device)
 
         # define starting shape
         self._x = torch.tensor([self.width // 2], dtype=torch.int, device=self.device)
@@ -56,21 +55,6 @@ class Tetris(gym.Env):
 
         self.window = None
         self.clock = None
-
-    @property
-    def size(self):
-        return self.width, self.height
-
-    def _get_obs(self):
-        state = self.placedBlocks.clone()
-        state[self.shape_inview] = 2
-        return state
-
-    def _get_info(self):
-        return {
-            "shape": self.shape,
-            "score": self.score,
-        }
 
     def reset(self, seed=None, options=None):
         super().reset(seed=seed)  # needed to seed self.np_random
@@ -89,8 +73,28 @@ class Tetris(gym.Env):
 
         return observation, info
 
+    def _get_obs(self):
+        state = self.placedBlocks.clone()
+        state[self.shape_inview] = 2
+        return state
+
+    def _get_info(self):
+        return {
+            "shape": self.shape,
+            "score": self.score,
+        }
+
+    def _clear_rows(self):
+        isfull = self.placedBlocks.all(axis=0)
+        num_full = sum(isfull)
+
+        updatedBlocks = self.placedBlocks[:, ~isfull]
+        self.placedBlocks.fill_(value=0)
+
+        self.placedBlocks[:, : self.height - num_full] = updatedBlocks
+        self.score += num_full
+
     def _new_shape(self):
-        """Create a new shape above the view"""
         self.shape["x"], self.shape["y"] = self._x.clone(), self._y.clone()
         return self.shape
 
@@ -103,23 +107,15 @@ class Tetris(gym.Env):
         return self.score >= self.max_score
 
     @property
-    def done(self) -> Union[bool, torch.Tensor]:
-        return self.terminated or self.truncated
-
-    @property
-    def reward(self) -> torch.Tensor:
-        return self._reward
-
-    @reward.setter
-    def reward(self, value: float):
-        self._reward.fill_(value)
+    def board_height(self) -> torch.Tensor:
+        return (self.height_range * self.placedBlocks.any(dim=0)).argmax()
 
     def step(self, action: Union[int, torch.Tensor]):
         self.reward = 0  # type: ignore
+        board_height = self.board_height
 
-        # 2. move
+        # move shape
         x, y = self.move_shape(action)
-        self.reward += 1 if not self.placedBlocks[x, 0].any() else -1
 
         # gravity
         if self.y.min() > 0:  # boundary check
@@ -132,6 +128,9 @@ class Tetris(gym.Env):
             self.placedBlocks[x, y] = 1
             self._clear_rows()
             self._new_shape()
+
+        # penalize increase in board height / reward for clearing rows
+        self.reward -= self.board_height - board_height
 
         terminated = self.terminated
         reward = self.reward.clone()
@@ -166,7 +165,6 @@ class Tetris(gym.Env):
         return self.shape_inview
 
     def rotate_shape(self):
-        """Rotate shape clockwise"""
 
         x_median = self.x.median()
         y_median = self.y.median()
@@ -183,10 +181,23 @@ class Tetris(gym.Env):
                 self.y = y_rotated
 
     @property
+    def size(self):
+        return self.width, self.height
+
+    @property
+    def done(self) -> Union[bool, torch.Tensor]:
+        return self.terminated or self.truncated
+
+    @property
+    def reward(self) -> torch.Tensor:
+        return self._reward
+
+    @reward.setter
+    def reward(self, value: float):
+        self._reward.fill_(value)
+
+    @property
     def _inview(self) -> torch.Tensor:
-        """mask for shape points that are in view. This
-        is required as shapes are initially created above the
-        view and then fall into view"""
         return self.shape["y"] < self.height
 
     @property
@@ -210,19 +221,6 @@ class Tetris(gym.Env):
     @y.setter
     def y(self, value: torch.Tensor):
         self.shape["y"] = value
-
-    def _clear_rows(self):
-        isfull = self.placedBlocks.all(axis=0)
-        num_full = sum(isfull)
-
-        updatedBlocks = self.placedBlocks[:, ~isfull]
-        self.placedBlocks.fill_(value=0)
-
-        self.placedBlocks[:, : self.height - num_full] = updatedBlocks
-        self.score += num_full
-
-        # reward for clearing rows
-        self.reward += num_full
 
     def _render_frame(self):
         if self.window is None and self.render_mode == "human":

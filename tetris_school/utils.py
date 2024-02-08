@@ -1,4 +1,5 @@
 import random
+from colorama import Fore, Back, Style
 import matplotlib.pyplot as plt
 from collections import namedtuple, deque
 
@@ -34,3 +35,10 @@ def plot(stats: dict, yscale: str = "linear") -> None:
 
     plt.savefig("plot.png")
     plt.close()
+
+
+REWARD_UNICODE = {
+    0: "–",
+    -1: f"{Fore.YELLOW}▄{Style.RESET_ALL}",
+    1: f"{Fore.CYAN}▀{Style.RESET_ALL}",
+}

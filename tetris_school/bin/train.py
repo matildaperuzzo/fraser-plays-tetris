@@ -2,13 +2,14 @@ import argparse
 import copy
 import os
 
+import numpy as np
 import torch
 import torch.nn.functional as F
 import torch.optim as optim
 
 from tetris_school.games import Tetris
 from tetris_school.model import Fraser, Jordan
-from tetris_school.utils import ReplayMemory, Transition, plot
+from tetris_school.utils import ReplayMemory, Transition, plot, REWARD_UNICODE
 
 
 def train(
@@ -29,7 +30,7 @@ def train(
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     game = Tetris(render_mode="human" if ui else None, device=device)
 
-    model = Jordan(
+    model = Fraser(
         input_size=game.size,
         num_actions=game.action_space.n,
         hidden_size=32,
@@ -52,6 +53,7 @@ def train(
         "record": 0,
     }
     for i in range(num_episodes):
+        print(f"Episode {i}\t[", end="")
 
         state, info = game.reset()
         while not game.done:
@@ -72,6 +74,11 @@ def train(
 
             # save transition to memory
             memory.push(state, action, next_state, reward)
+
+            # visualize game rewards
+            print(REWARD_UNICODE[np.sign(reward.item())], end="")
+            if game.done:
+                print("]")
 
             # move to next state
             state = next_state
@@ -109,8 +116,7 @@ def train(
             for param, param_prime in zip(model.parameters(), model_prime.parameters()):
                 param_prime.data.copy_(tau * param.data + (1.0 - tau) * param_prime.data)
 
-            print(f"Episode {i}, action {action.item()}, reward {reward.item()}")
-            if game.done:
+            if game.done:  # collect and plot stats
                 stats["score"].append(game.score.item())
                 stats["temperature"].append(temperature)
 
