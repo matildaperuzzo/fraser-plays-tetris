@@ -119,7 +119,7 @@ for i_episode in range(num_episodes):
     state = state.unsqueeze(0)
     for t in count():
         action = select_action(state)
-        next_state, reward, terminated, truncated, _ = env.step(action.item())
+        next_state, reward, terminated, truncated, info = env.step(action.item())
         reward = reward.unsqueeze(0)
 
         done = terminated or truncated
@@ -148,7 +148,6 @@ for i_episode in range(num_episodes):
 
         print(f"Episode {i_episode}, action {action.item()}, reward {reward.item()}")
         if done:
-            number_of_lines.append(t+1)
-            scores.append(info["score"])
+            scores.append(info["score"].item())
             plot_durations()
             break

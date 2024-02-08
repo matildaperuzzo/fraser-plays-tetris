@@ -22,10 +22,12 @@ class Tetris(gym.Env):
     metadata = {"render_modes": ["human"], "render_fps": 30}
     actions = Enum("Actions", "NOTHING RIGHT LEFT ROTATE", start=0)
 
-    def __init__(self, width: int = 5, height: int = 5, render_mode: Optional[str] = None):
+    def __init__(self, width: int = 5, height: int = 5, render_mode: Optional[str] = None, max_iter: int = 1000):
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        
         assert render_mode is None or render_mode in self.metadata["render_modes"]
         self.render_mode = render_mode
+        self.max_iter = max_iter
 
         # define size of game board
         self.width = width
@@ -63,6 +65,8 @@ class Tetris(gym.Env):
         
         self._new_shape()
         self.placedBlocks.mul_(0)
+
+        self.iter = 0
         self.score = 0
 
         observation = self._get_obs()
@@ -80,7 +84,7 @@ class Tetris(gym.Env):
     
     @property
     def terminated(self) -> torch.Tensor:
-        return self.placedBlocks[:, 1].any()
+        return self.placedBlocks[:, -1].any()
     
     @property
     def reward(self) -> torch.Tensor:
@@ -118,7 +122,9 @@ class Tetris(gym.Env):
         if self.render_mode == "human":
             self._render_frame()
 
-        return observation, reward, terminated, False, info
+        self.iter += 1
+        truncated = self.iter >= self.max_iter
+        return observation, reward, terminated, truncated, info
 
     def move_shape(self, action: int):
         x, y = self.shape_inview
@@ -196,7 +202,7 @@ class Tetris(gym.Env):
         self.score += num_full
 
         # reward for clearing rows
-        # self.reward += torch.log10(num_full+1)
+        self.reward += num_full
 
     def _render_frame(self):
         if self.window is None and self.render_mode == "human":
