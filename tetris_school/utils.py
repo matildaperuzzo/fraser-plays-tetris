@@ -1,4 +1,5 @@
 import random
+import matplotlib.pyplot as plt
 from collections import namedtuple, deque
 
 Transition = namedtuple('Transition',
@@ -19,3 +20,13 @@ class ReplayMemory(object):
 
     def __len__(self):
         return len(self.memory)
+    
+def plot(scores):
+    plt.figure()
+
+    plt.plot(scores, label='Score')
+    plt.xlabel('Episode')
+    plt.legend()
+
+    plt.savefig("plot.png")
+    plt.close()

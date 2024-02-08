@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, Union
 from enum import Enum
 import torch
 
@@ -87,6 +87,14 @@ class Tetris(gym.Env):
         return self.placedBlocks[:, -1].any()
     
     @property
+    def truncated(self) -> bool:
+        return self.iter >= self.max_iter
+    
+    @property
+    def done(self) -> Union[bool, torch.Tensor]:
+        return self.terminated or self.truncated
+    
+    @property
     def reward(self) -> torch.Tensor:
         return self._reward
     
@@ -94,7 +102,7 @@ class Tetris(gym.Env):
     def reward(self, value: float):
         self._reward.fill_(value)
 
-    def step(self, action: int):
+    def step(self, action: Union[int,torch.Tensor]):
         self.reward = 0  # type: ignore
 
         # 2. move
@@ -123,10 +131,10 @@ class Tetris(gym.Env):
             self._render_frame()
 
         self.iter += 1
-        truncated = self.iter >= self.max_iter
+        truncated = self.truncated
         return observation, reward, terminated, truncated, info
 
-    def move_shape(self, action: int):
+    def move_shape(self, action: Union[int,torch.Tensor]):
         x, y = self.shape_inview
 
         # possible actions
