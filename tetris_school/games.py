@@ -20,7 +20,7 @@ SPEED = 100
 
 
 class Tetris(gym.Env):
-    metadata = {"render_modes": ["human"], "render_fps": 30}
+    metadata = {"render_modes": ["human"], "render_fps": 100}
     actions = Enum("Actions", "NOTHING RIGHT LEFT ROTATE", start=0)
 
     def __init__(
