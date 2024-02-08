@@ -57,10 +57,14 @@ class Tetris(gym.Env):
         self.window = None
         self.clock = None
 
+    @property
+    def size(self):
+        return self.width, self.height
+
     def _get_obs(self):
         state = self.placedBlocks.clone()
         state[self.shape_inview] = 2
-        return state.flatten()
+        return state
 
     def _get_info(self):
         return {

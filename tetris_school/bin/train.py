@@ -1,5 +1,4 @@
 import argparse
-from tqdm import tqdm
 import copy
 import os
 
@@ -30,7 +29,13 @@ def train(
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     game = Tetris(render_mode="human" if ui else None, device=device)
 
-    model = Fraser(hidden_size=32, layer_number=4, num_actions=game.action_space.n, input_size=game.width * game.height).to(device)
+    model = Jordan(
+        input_size=game.size,
+        num_actions=game.action_space.n,
+        hidden_size=32,
+        layer_number=4,
+    ).to(device)
+
     if os.path.exists(ckpt_path) and not force:  # load pre-trained model
         model.load_state_dict(torch.load(ckpt_path))
         temperature = min_temperature
@@ -86,7 +91,7 @@ def train(
 
             # compute V(s_{t+1})
             with torch.no_grad():
-                next_rewards = (next_states >= 0).all(axis=1) * model_prime(next_states).max(dim=1).values
+                next_rewards = (next_states.view(batch_size, -1) >= 0).all(axis=1) * model_prime(next_states).max(dim=1).values
             rewards += gamma * next_rewards
 
             # huber loss for Q-learning
