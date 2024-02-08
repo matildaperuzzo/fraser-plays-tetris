@@ -32,6 +32,7 @@ def train(
     model = Fraser(hidden_size=32, layer_number=4, num_actions=game.action_space.n, input_size=game.width * game.height).to(device)
     if os.path.exists(ckpt_path):  # load pre-trained model
         model.load_state_dict(torch.load(ckpt_path))
+        temperature = min_temperature
 
     model_prime = copy.deepcopy(model).to(device)
     model_prime.load_state_dict(model.state_dict())
