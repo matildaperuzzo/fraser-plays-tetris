@@ -20,3 +20,14 @@ gymnasium = {extras = ["accept-rom-license", "atari"], version = "^0.29.1"}
 [build-system]
 build-backend = "poetry.core.masonry.api"
 requires = ["poetry-core"]
+
+[tool.pylint.messages_control]
+max-line-length = 140
+
+[tool.black]
+include = '\.pyi?$'
+line-length = 140
+
+[tool.isort]
+line_length = 140
+profile = "black"

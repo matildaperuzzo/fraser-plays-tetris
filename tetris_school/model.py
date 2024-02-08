@@ -10,7 +10,7 @@ class Fraser(nn.Module):
 
         self.embed = nn.Linear(input_size, hidden_size)
         self.layers = nn.ModuleList([HiddenBlock(hidden_size) for i in range(layer_number)])
-        
+
         self.norm = nn.LayerNorm(hidden_size)
         self.head = Head(hidden_size, num_actions=num_actions)
 
@@ -19,9 +19,10 @@ class Fraser(nn.Module):
         x = self.embed(x.float())
         for layer in self.layers:
             x = layer(x)
-        
+
         x = self.norm(x)
         return self.head(x)
+
 
 class Jordan(nn.Module):
     def __init__(self, hidden_size: int, layer_number: int, input_size: int = 10, num_actions: int = 4):
@@ -29,21 +30,21 @@ class Jordan(nn.Module):
 
         self.embed = nn.Linear(input_size, hidden_size)
         self.layers = nn.ModuleList([HiddenBlock(hidden_size) for i in range(layer_number)])
-        
+
         self.norm = nn.LayerNorm(hidden_size)
         self.head = Head(hidden_size, num_actions=num_actions)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        floor = torch.zeros(len(x),dtype=x.dtype,device=x.device)
+        floor = torch.zeros(len(x), dtype=x.dtype, device=x.device)
         floor_index = torch.argwhere(x == 1).to(x.dtype)
-        floor[floor_index[:,0]] = floor_index[:,1]+1
+        floor[floor_index[:, 0]] = floor_index[:, 1] + 1
         cieling = torch.zeros_like(floor)
         cieling_index = torch.argwhere(x == 2).to(x.dtype)
-        cieling[cieling_index[:,0]] = cieling_index[:,1]+1
-        x = torch.cat([floor,cieling]).float()
+        cieling[cieling_index[:, 0]] = cieling_index[:, 1] + 1
+        x = torch.cat([floor, cieling]).float()
         x = self.embed(x)
         for layer in self.layers:
             x = layer(x)
-        
+
         x = self.norm(x)
         return self.head(x)

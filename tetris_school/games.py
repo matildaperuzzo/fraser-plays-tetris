@@ -23,8 +23,8 @@ class Tetris(gym.Env):
     actions = Enum("Actions", "NOTHING RIGHT LEFT ROTATE", start=0)
 
     def __init__(self, width: int = 5, height: int = 5, render_mode: Optional[str] = None, max_score: int = 100):
-        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-        
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
         assert render_mode is None or render_mode in self.metadata["render_modes"]
         self.render_mode = render_mode
         self.max_score = max_score
@@ -41,10 +41,10 @@ class Tetris(gym.Env):
         self.height_range = torch.arange(self.height, device=self.device)
 
         # define starting shape
-        self._x = torch.tensor([self.width//2], dtype=torch.int, device=self.device)
+        self._x = torch.tensor([self.width // 2], dtype=torch.int, device=self.device)
         self._y = torch.tensor([self.height], dtype=torch.int, device=self.device)
 
-        self.shape = {"x": self._x.clone(), "y": self._y.clone() }
+        self.shape = {"x": self._x.clone(), "y": self._y.clone()}
 
         self.window = None
         self.clock = None
@@ -53,7 +53,7 @@ class Tetris(gym.Env):
         state = self.placedBlocks.clone()
         state[self.shape_inview] = 2
         return state.flatten()
-    
+
     def _get_info(self):
         return {
             "shape": self.shape,
@@ -62,7 +62,7 @@ class Tetris(gym.Env):
 
     def reset(self, seed=None, options=None):
         super().reset(seed=seed)  # needed to seed self.np_random
-        
+
         self._new_shape()
         self.placedBlocks.mul_(0)
 
@@ -81,33 +81,33 @@ class Tetris(gym.Env):
         """Create a new shape above the view"""
         self.shape["x"], self.shape["y"] = self._x.clone(), self._y.clone()
         return self.shape
-    
+
     @property
     def terminated(self) -> torch.Tensor:
         return self.placedBlocks[:, -1].any()
-    
+
     @property
     def truncated(self) -> bool:
         return self.score >= self.max_score
-    
+
     @property
     def done(self) -> Union[bool, torch.Tensor]:
         return self.terminated or self.truncated
-    
+
     @property
     def reward(self) -> torch.Tensor:
         return self._reward
-    
+
     @reward.setter
     def reward(self, value: float):
         self._reward.fill_(value)
 
-    def step(self, action: Union[int,torch.Tensor]):
+    def step(self, action: Union[int, torch.Tensor]):
         self.reward = 0  # type: ignore
 
         # 2. move
         x, y = self.move_shape(action)
-        self.reward += 1 if not self.placedBlocks[x,0].any() else -1
+        self.reward += 1 if not self.placedBlocks[x, 0].any() else -1
 
         # gravity
         if self.y.min() > 0:  # boundary check
@@ -134,12 +134,12 @@ class Tetris(gym.Env):
         truncated = self.truncated
         return observation, reward, terminated, truncated, info
 
-    def move_shape(self, action: Union[int,torch.Tensor]):
+    def move_shape(self, action: Union[int, torch.Tensor]):
         x, y = self.shape_inview
 
         # possible actions
         if action == self.actions.RIGHT.value:
-            if self.x.max() < self.width-1:  # boundary check
+            if self.x.max() < self.width - 1:  # boundary check
                 if not self.placedBlocks[x + 1, y].any():  # collision check
                     self.x += 1
 
@@ -150,9 +150,9 @@ class Tetris(gym.Env):
 
         elif action == self.actions.ROTATE.value:
             self.rotate_shape()
-        
+
         return self.shape_inview
-    
+
     def rotate_shape(self):
         """Rotate shape clockwise"""
 
@@ -163,7 +163,7 @@ class Tetris(gym.Env):
         x_rotated = x_median - (self.y - y_median)
         y_rotated = y_median + (self.x - x_median)
 
-        if x_rotated.max() < self.width-1 and x_rotated.min() > 0:  # boundary check
+        if x_rotated.max() < self.width - 1 and x_rotated.min() > 0:  # boundary check
             # check for collisions
             if not self.placedBlocks[x_rotated[y_rotated < self.height], y_rotated[y_rotated < self.height]].any():
 
@@ -206,7 +206,7 @@ class Tetris(gym.Env):
         updatedBlocks = self.placedBlocks[:, ~isfull]
         self.placedBlocks.fill_(value=0)
 
-        self.placedBlocks[:, :self.height-num_full] = updatedBlocks
+        self.placedBlocks[:, : self.height - num_full] = updatedBlocks
         self.score += num_full
 
         # reward for clearing rows
@@ -217,36 +217,34 @@ class Tetris(gym.Env):
             pygame.init()
             pygame.display.init()
 
-            self.font = pygame.font.SysFont('arial', 25)            
-            self.window = pygame.display.set_mode(
-                (BLOCK_SIZE*self.width, BLOCK_SIZE*self.height)
-            )
-            pygame.display.set_caption('Tetris')
+            self.font = pygame.font.SysFont("arial", 25)
+            self.window = pygame.display.set_mode((BLOCK_SIZE * self.width, BLOCK_SIZE * self.height))
+            pygame.display.set_caption("Tetris")
 
         if self.clock is None and self.render_mode == "human":
             self.clock = pygame.time.Clock()
 
-        canvas = pygame.Surface((BLOCK_SIZE*self.width, BLOCK_SIZE*self.height))
+        canvas = pygame.Surface((BLOCK_SIZE * self.width, BLOCK_SIZE * self.height))
         canvas.fill(BLACK)
 
         for idx in self.placedBlocks.argwhere():
             x, y = idx
 
-            pygame.draw.rect(canvas, BLUE1, pygame.Rect(x * BLOCK_SIZE, (self.height-y-1)*BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE))
-            pygame.draw.rect(canvas, BLUE2, pygame.Rect(x * BLOCK_SIZE + 4, (self.height-y-1)*BLOCK_SIZE + 4, 12, 12))
+            pygame.draw.rect(canvas, BLUE1, pygame.Rect(x * BLOCK_SIZE, (self.height - y - 1) * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE))
+            pygame.draw.rect(canvas, BLUE2, pygame.Rect(x * BLOCK_SIZE + 4, (self.height - y - 1) * BLOCK_SIZE + 4, 12, 12))
 
-        for x,y in zip(self.shape["x"], self.shape["y"]):
-            pygame.draw.rect(canvas, RED, pygame.Rect(x * BLOCK_SIZE, (self.height-y-1) * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE))
-            pygame.draw.rect(canvas, RED2, pygame.Rect(x * BLOCK_SIZE + 4, (self.height-y-1) * BLOCK_SIZE + 4, 12, 12))
+        for x, y in zip(self.shape["x"], self.shape["y"]):
+            pygame.draw.rect(canvas, RED, pygame.Rect(x * BLOCK_SIZE, (self.height - y - 1) * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE))
+            pygame.draw.rect(canvas, RED2, pygame.Rect(x * BLOCK_SIZE + 4, (self.height - y - 1) * BLOCK_SIZE + 4, 12, 12))
 
         x, y = self.shape["x"][0], self.shape["y"][0]
-        pygame.draw.rect(canvas, BLUE1, pygame.Rect(x * BLOCK_SIZE, (self.height-y-1) * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE))
+        pygame.draw.rect(canvas, BLUE1, pygame.Rect(x * BLOCK_SIZE, (self.height - y - 1) * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE))
         text = self.font.render(f"Score: {self.score}", True, WHITE)
 
         # The following line copies our drawings from `canvas` to the visible window
         self.window.blit(text, [0, 0])
         self.window.blit(canvas, canvas.get_rect())
-        
+
         pygame.display.flip()
         pygame.event.pump()
         pygame.display.update()

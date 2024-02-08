@@ -2,9 +2,8 @@ import random
 import matplotlib.pyplot as plt
 from collections import namedtuple, deque
 
-Transition = namedtuple('Transition',
-    ('state', 'action', 'next_state', 'reward')
-)
+Transition = namedtuple("Transition", ("state", "action", "next_state", "reward"))
+
 
 class ReplayMemory(object):
 
@@ -20,14 +19,16 @@ class ReplayMemory(object):
 
     def __len__(self):
         return len(self.memory)
-    
-def plot(stats:dict) -> None:
+
+
+def plot(stats: dict, yscale: str = "linear") -> None:
     plt.figure()
 
     for label, x in stats.items():
         plt.plot(x, label=label)
 
-    plt.xlabel('Episode')
+    plt.xlabel("Episode")
+    plt.yscale(yscale)
     plt.legend()
 
     plt.savefig("plot.png")

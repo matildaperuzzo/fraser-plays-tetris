@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+
 class HiddenBlock(nn.Module):
     def __init__(self, embed_dim: int, num_heads: int = 8):
         super().__init__()
@@ -33,6 +34,7 @@ class HiddenBlock(nn.Module):
         x = residual + x
 
         return x
+
 
 class Head(nn.Module):
     def __init__(self, embed_dim: int, num_actions: int):
