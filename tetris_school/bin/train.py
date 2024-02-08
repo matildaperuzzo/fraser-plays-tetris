@@ -18,14 +18,14 @@ def train(
     anneal_factor: float = 0.9999,
     min_temperature: float = 0.05,
     gamma: float = 0.99,
-    render_mode: Optional[str] = None,
+    ui: bool = False,
     num_workers: int = 1,
     memory_size: int = 10000,
     num_episodes: int = 600,
     batch_size: int = 128,
 ):
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    game = Tetris(render_mode=render_mode, device=device)
+    device = "cpu"  # torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    game = Tetris(render_mode="human" if ui else None, device=device)
 
     model = Fraser(hidden_size=32, layer_number=4, num_actions=game.action_space.n, input_size=game.width * game.height).to(device)
     model_prime = Fraser(hidden_size=32, layer_number=4, num_actions=game.action_space.n, input_size=game.width * game.height).to(device)
@@ -115,6 +115,6 @@ if __name__ == "__main__":
     parser.add_argument("--memory_size", type=int, default=10000, help="Memory size")
     parser.add_argument("--batch_size", type=int, default=128, help="Batch size")
     parser.add_argument("--num_episodes", type=int, default=600, help="Number of episodes")
-    parser.add_argument("--render_mode", type=str, default=None, help="Render mode")
+    parser.add_argument("--ui", action="store_true", help="Render the game")
 
     train(**vars(parser.parse_args()))
