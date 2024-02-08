@@ -9,7 +9,7 @@ import torch.optim as optim
 
 from tetris_school.games import Tetris
 from tetris_school.model import Fraser, Jordan
-from tetris_school.utils import ReplayMemory, Transition, plot, REWARD_UNICODE
+from tetris_school.utils import ReplayMemory, Transition, plot, REWARD_UNICODE, GAME_OVER
 
 
 def train(
@@ -22,7 +22,7 @@ def train(
     ui: bool = False,
     num_workers: int = 1,
     memory_size: int = 10000,
-    num_episodes: int = 600,
+    num_episodes: int = 150,
     batch_size: int = 128,
     ckpt_path: str = "model.ckpt",
     force: bool = False,
@@ -70,7 +70,7 @@ def train(
             next_state, reward, terminated, truncated, info = game.step(action)
 
             if terminated:  # game over state
-                next_state.fill_(-1)
+                next_state.fill_(GAME_OVER)
 
             # save transition to memory
             memory.push(state, action, next_state, reward)
@@ -98,7 +98,9 @@ def train(
 
             # compute V(s_{t+1})
             with torch.no_grad():
-                next_rewards = (next_states.view(batch_size, -1) >= 0).all(axis=1) * model_prime(next_states).max(dim=1).values
+                not_done = (next_states.view(batch_size, -1) != GAME_OVER).all(axis=1)
+                next_rewards = not_done * model_prime(next_states).max(dim=1).values
+
             rewards += gamma * next_rewards
 
             # huber loss for Q-learning
@@ -138,7 +140,7 @@ if __name__ == "__main__":
     parser.add_argument("--num_workers", type=int, default=os.cpu_count(), help="Number of workers")
     parser.add_argument("--memory_size", type=int, default=10000, help="Memory size")
     parser.add_argument("--batch_size", type=int, default=128, help="Batch size")
-    parser.add_argument("--num_episodes", type=int, default=600, help="Number of episodes")
+    parser.add_argument("--num_episodes", type=int, default=150, help="Number of episodes")
     parser.add_argument("--ui", action="store_true", help="Render the game")
     parser.add_argument("--ckpt_path", type=str, default="model.ckpt", help="Checkpoint path")
     parser.add_argument("--force", action="store_true", help="Force to overwrite checkpoint")

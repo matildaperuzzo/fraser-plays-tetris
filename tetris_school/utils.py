@@ -1,5 +1,5 @@
 import random
-from colorama import Fore, Back, Style
+from colorama import Fore, Style
 import matplotlib.pyplot as plt
 from collections import namedtuple, deque
 
@@ -37,6 +37,7 @@ def plot(stats: dict, yscale: str = "linear") -> None:
     plt.close()
 
 
+GAME_OVER = -1
 REWARD_UNICODE = {
     0: "–",
     -1: f"{Fore.YELLOW}▄{Style.RESET_ALL}",
