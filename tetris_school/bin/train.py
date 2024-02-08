@@ -15,7 +15,7 @@ def train(
     learning_rate: float = 1e-4,
     tau: float = 0.005,
     temperature: float = 1.0,
-    anneal_factor: float = 0.999,
+    anneal_factor: float = 0.9999,
     min_temperature: float = 0.05,
     gamma: float = 0.99,
     render_mode: Optional[str] = None,
@@ -25,10 +25,10 @@ def train(
     batch_size: int = 128,
 ):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    game = Tetris(render_mode=render_mode)
+    game = Tetris(render_mode=render_mode, device=device)
 
-    model = Fraser(hidden_size=512, layer_number=8, num_actions=game.action_space.n, input_size=game.width * game.height).to(device)
-    model_prime = Fraser(hidden_size=512, layer_number=8, num_actions=game.action_space.n, input_size=game.width * game.height).to(device)
+    model = Fraser(hidden_size=32, layer_number=4, num_actions=game.action_space.n, input_size=game.width * game.height).to(device)
+    model_prime = Fraser(hidden_size=32, layer_number=4, num_actions=game.action_space.n, input_size=game.width * game.height).to(device)
     model_prime.load_state_dict(model.state_dict())
 
     optimizer = optim.AdamW(model.parameters(), lr=learning_rate, amsgrad=True)
@@ -108,7 +108,7 @@ if __name__ == "__main__":
     parser.add_argument("--learning_rate", type=float, default=1e-4, help="Learning rate")
     parser.add_argument("--tau", type=float, default=0.005, help="Tau for soft update")
     parser.add_argument("--temperature", type=float, default=1.0, help="Temperature for action sampling")
-    parser.add_argument("--anneal_factor", type=float, default=0.999, help="Annealing factor")
+    parser.add_argument("--anneal_factor", type=float, default=0.9999, help="Annealing factor")
     parser.add_argument("--min_temperature", type=float, default=0.05, help="Minimum temperature")
     parser.add_argument("--gamma", type=float, default=0.99, help="Discount factor")
     parser.add_argument("--num_workers", type=int, default=os.cpu_count(), help="Number of workers")

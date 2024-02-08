@@ -1,6 +1,7 @@
 from typing import Optional, Union
 from enum import Enum
 import torch
+from torch.types import Device
 
 import pygame
 import gymnasium as gym
@@ -22,10 +23,17 @@ class Tetris(gym.Env):
     metadata = {"render_modes": ["human"], "render_fps": 30}
     actions = Enum("Actions", "NOTHING RIGHT LEFT ROTATE", start=0)
 
-    def __init__(self, width: int = 5, height: int = 5, render_mode: Optional[str] = None, max_score: int = 100):
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
+    def __init__(
+        self,
+        width: int = 5,
+        height: int = 5,
+        render_mode: Optional[str] = None,
+        max_score: int = 100,
+        device: Optional[Device] = None,
+    ):
+        self.device = device
         assert render_mode is None or render_mode in self.metadata["render_modes"]
+
         self.render_mode = render_mode
         self.max_score = max_score
 
