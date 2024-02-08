@@ -25,7 +25,8 @@ def plot(stats: dict, yscale: str = "linear") -> None:
     plt.figure()
 
     for label, x in stats.items():
-        plt.plot(x, label=label)
+        if isinstance(x, list):
+            plt.plot(x, label=label)
 
     plt.xlabel("Episode")
     plt.yscale(yscale)

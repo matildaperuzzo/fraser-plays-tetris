@@ -1,5 +1,6 @@
 import argparse
 from tqdm import tqdm
+import copy
 import os
 
 import torch
@@ -23,12 +24,16 @@ def train(
     memory_size: int = 10000,
     num_episodes: int = 600,
     batch_size: int = 128,
+    ckpt_path: str = "model.ckpt",
 ):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     game = Tetris(render_mode="human" if ui else None, device=device)
 
     model = Fraser(hidden_size=32, layer_number=4, num_actions=game.action_space.n, input_size=game.width * game.height).to(device)
-    model_prime = Fraser(hidden_size=32, layer_number=4, num_actions=game.action_space.n, input_size=game.width * game.height).to(device)
+    if os.path.exists(ckpt_path):  # load pre-trained model
+        model.load_state_dict(torch.load(ckpt_path))
+
+    model_prime = copy.deepcopy(model).to(device)
     model_prime.load_state_dict(model.state_dict())
 
     optimizer = optim.AdamW(model.parameters(), lr=learning_rate, amsgrad=True)
@@ -37,6 +42,7 @@ def train(
     stats = {
         "score": [],
         "temperature": [],
+        "record": 0,
     }
     for i in range(num_episodes):
 
@@ -100,6 +106,11 @@ def train(
             if game.done:
                 stats["score"].append(game.score.item())
                 stats["temperature"].append(temperature)
+
+                if game.score > stats["record"]:
+                    stats["record"] = game.score.item()
+                    torch.save(model.state_dict(), ckpt_path)
+
                 plot(stats, yscale="symlog")
 
 
@@ -116,5 +127,6 @@ if __name__ == "__main__":
     parser.add_argument("--batch_size", type=int, default=128, help="Batch size")
     parser.add_argument("--num_episodes", type=int, default=600, help="Number of episodes")
     parser.add_argument("--ui", action="store_true", help="Render the game")
+    parser.add_argument("--ckpt_path", type=str, default="model.ckpt", help="Checkpoint path")
 
     train(**vars(parser.parse_args()))
