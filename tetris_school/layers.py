@@ -3,8 +3,14 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 class HiddenBlock(nn.Module):
-    def __init__(self, embed_dim: int):
+    def __init__(self, embed_dim: int, num_heads: int = 8):
         super().__init__()
+
+        # self.self_attn = nn.MultiheadAttention(
+        #     embed_dim=embed_dim,
+        #     num_heads=num_heads,
+        # )
+        # self.self_attn_norm = nn.LayerNorm(embed_dim)
 
         self.norm = nn.LayerNorm(embed_dim)
         self.fc1 = nn.Linear(embed_dim, embed_dim)
@@ -12,7 +18,15 @@ class HiddenBlock(nn.Module):
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
 
-        residual = x
+        residual = x  # self-attention block
+        # x = self.self_attn_norm(x)
+        # x, _ = self.self_attn(
+        #     query=x,
+        #     key=x,
+        #     value=x,
+        #     need_weights=False,
+        # )
+        # x = residual + x
         x = self.norm(x)
         x = F.gelu(self.fc1(x))
         x = self.fc2(x)
@@ -34,7 +48,4 @@ class Head(nn.Module):
         x = F.gelu(x)
         x = self.norm(x)
 
-        representations = self.toaction(x)
-        if representations.ndim == 1:
-            representations = representations.unsqueeze(0).unsqueeze(1)
-        return {'representations': representations, 'logits': representations.mean(axis=(0,1))}
+        return self.toaction(x)

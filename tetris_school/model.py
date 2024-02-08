@@ -5,10 +5,10 @@ from tetris_school.layers import HiddenBlock, Head
 
 
 class Fraser(nn.Module):
-    def __init__(self, hidden_size: int, layer_number: int, num_states: int = 3, num_actions: int = 4):
+    def __init__(self, hidden_size: int, layer_number: int, input_size: int = 25, num_actions: int = 4):
         super().__init__()
 
-        self.embed = nn.Embedding(num_embeddings=num_states, embedding_dim=hidden_size, padding_idx=0)
+        self.embed = nn.Linear(input_size, hidden_size)
         self.layers = nn.ModuleList([HiddenBlock(hidden_size) for i in range(layer_number)])
         
         self.norm = nn.LayerNorm(hidden_size)
@@ -16,7 +16,7 @@ class Fraser(nn.Module):
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
 
-        x = self.embed(x)
+        x = self.embed(x.float())
         for layer in self.layers:
             x = layer(x)
         

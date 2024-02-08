@@ -1,7 +1,5 @@
-import gymnasium
 import math
 import random
-import torch.nn.functional as F
 import matplotlib.pyplot as plt
 from itertools import count
 
@@ -10,35 +8,8 @@ import torch.nn as nn
 import torch.optim as optim
 
 from tetris_school.utils import ReplayMemory, Transition
-
-env = gymnasium.make("ALE/Tetris-v5", obs_type="ram", frameskip=4)
-env = gymnasium.make("CartPole-v1")
-
-def state_transform(x):
-    return x
-
-    # R, G, B = x[:,:,0], x[:,:,1], x[:,:,2]
-    # gray = 0.2125*R + 0.7154*G + 0.0721*B
-
-    # return gray / 256
-
-# if GPU is to be used
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-class DQN(nn.Module):
-
-    def __init__(self, n_observations, n_actions):
-        super(DQN, self).__init__()
-        self.layer1 = nn.Linear(n_observations, 4096)
-        self.layer2 = nn.Linear(4096, 4096)
-        self.layer3 = nn.Linear(4096, n_actions)
-
-    # Called with either one element to determine next action, or a batch
-    # during optimization. Returns tensor([[left0exp,right0exp]...]).
-    def forward(self, x):
-        x = F.relu(self.layer1(x))
-        x = F.relu(self.layer2(x))
-        return self.layer3(x)
-
+from tetris_school.model import Fraser
+from tetris_school.games import Tetris
 
 BATCH_SIZE = 128
 GAMMA = 0.99
@@ -48,25 +19,17 @@ EPS_DECAY = 1000
 TAU = 0.005
 LR = 1e-4
 
-# Get number of actions from gym action space
-n_actions = env.action_space.n
-# Get the number of state observations
+env = Tetris(render_mode=None)
 state, info = env.reset()
 
-# convert RGB state to grayscale
-state = state_transform(state)
-n_observations = len(state)
-
-policy_net = DQN(n_observations, n_actions).to(device)
-target_net = DQN(n_observations, n_actions).to(device)
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+policy_net = Fraser(hidden_size=512, layer_number=8, num_actions=env.action_space.n, input_size=env.width*env.height).to(device)
+target_net = Fraser(hidden_size=512, layer_number=8, num_actions=env.action_space.n, input_size=env.width*env.height).to(device)
 target_net.load_state_dict(policy_net.state_dict())
 
 optimizer = optim.AdamW(policy_net.parameters(), lr=LR, amsgrad=True)
 memory = ReplayMemory(10000)
-
-
 steps_done = 0
-
 
 def select_action(state):
     global steps_done
@@ -81,7 +44,7 @@ def select_action(state):
             # found, so we pick action with the larger expected reward.
             return policy_net(state).max(1).indices.view(1, 1)
     else:
-        return torch.tensor([[env.action_space.sample()]], device=device, dtype=torch.long)
+        return torch.tensor([[env.action_space.sample()]], device=device, dtype=torch.int)
 
 
 number_of_lines = []
@@ -153,18 +116,18 @@ else:
 for i_episode in range(num_episodes):
     # Initialize the environment and get its state
     state, info = env.reset()
-    state = torch.tensor(state_transform(state), dtype=torch.float32, device=device).unsqueeze(0)
+    state = state.unsqueeze(0)
     for t in count():
         action = select_action(state)
         next_state, reward, terminated, truncated, _ = env.step(action.item())
-        reward = torch.tensor([reward], device=device)
+        reward = reward.unsqueeze(0)
 
         done = terminated or truncated
 
         if terminated:
             next_state = None
         else:
-            next_state = torch.tensor(next_state, dtype=torch.float32, device=device).unsqueeze(0)
+            next_state = next_state.unsqueeze(0)
         
         # Store the transition in memory
         memory.push(state, action, next_state, reward)
@@ -183,7 +146,9 @@ for i_episode in range(num_episodes):
             target_net_state_dict[key] = policy_net_state_dict[key]*TAU + target_net_state_dict[key]*(1-TAU)
         target_net.load_state_dict(target_net_state_dict)
 
+        print(f"Episode {i_episode}, action {action.item()}, reward {reward.item()}")
         if done:
-            scores.append(t + 1)
+            number_of_lines.append(t+1)
+            scores.append(info["score"])
             plot_durations()
             break
