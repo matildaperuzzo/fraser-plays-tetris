@@ -11,7 +11,7 @@ from tetris_school.model import Fraser, Jordan
 from tetris_school.utils import ReplayMemory, Transition, plot
 
 
-def train(learning_rate: float = 0.0001, tau: float = 0.005, temperature: float = 1.0, gamma: float = 0.99, ui: bool = True, file: Optional[str] = None, num_workers: int = 1, memory_size: int = 10000, num_episodes: int = 600, batch_size: int = 128):
+def train(learning_rate: float = 1e-4, tau: float = 0.005, temperature: float = 1.0, gamma: float = 0.99, ui: bool = True, file: Optional[str] = None, num_workers: int = 1, memory_size: int = 10000, num_episodes: int = 600, batch_size: int = 128):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     game = Tetris(render_mode=None)
 
@@ -22,7 +22,7 @@ def train(learning_rate: float = 0.0001, tau: float = 0.005, temperature: float 
     optimizer = optim.AdamW(model.parameters(), lr=learning_rate, amsgrad=True)
     memory = ReplayMemory(memory_size)
 
-    scores = []
+    stats = {"score": [], "temperature": []}
     for i in range(num_episodes):
 
         state, info = game.reset()
@@ -32,6 +32,9 @@ def train(learning_rate: float = 0.0001, tau: float = 0.005, temperature: float 
             with torch.no_grad():  
                 logits = model(state.unsqueeze(0))
                 action = torch.multinomial(F.softmax( logits / temperature, dim=-1), num_samples=1).squeeze()
+
+            # anneal temperature
+            temperature = max(temperature * 0.999, 0.05)
 
             # perform action and get reward
             next_state, reward, terminated, truncated, info = game.step(action)
@@ -78,15 +81,17 @@ def train(learning_rate: float = 0.0001, tau: float = 0.005, temperature: float 
             for param, param_prime in zip(model.parameters(), model_prime.parameters()):
                 param_prime.data.copy_(tau * param.data + (1.0 - tau) * param_prime.data)
 
+            print(f"Episode {i}, action {action.item()}, reward {reward.item()}")
             if game.done:
-                scores.append(game.score.item())
-                plot(scores)
+                stats["score"].append(game.score.item())
+                stats["temperature"].append(temperature)
+                plot(stats)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Train a tetris agent")
     parser.add_argument("--file", type=str, help="File to load model from")
     parser.add_argument("--ui", action="store_true", help="Use the UI")
-    parser.add_argument("--learning_rate", type=float, default=0.0001, help="Learning rate")
+    parser.add_argument("--learning_rate", type=float, default=1e-4, help="Learning rate")
     parser.add_argument("--tau", type=float, default=0.005, help="Tau for soft update")
     parser.add_argument("--temperature", type=float, default=1.0, help="Temperature for action sampling")
     parser.add_argument("--gamma", type=float, default=0.99, help="Discount factor")

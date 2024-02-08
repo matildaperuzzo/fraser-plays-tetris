@@ -21,10 +21,12 @@ class ReplayMemory(object):
     def __len__(self):
         return len(self.memory)
     
-def plot(scores):
+def plot(stats:dict) -> None:
     plt.figure()
 
-    plt.plot(scores, label='Score')
+    for label, x in stats.items():
+        plt.plot(x, label=label)
+
     plt.xlabel('Episode')
     plt.legend()
 
