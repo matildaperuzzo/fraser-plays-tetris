@@ -63,7 +63,7 @@ def train(
             # move to next state
             state = next_state
             if len(memory) < batch_size:
-                continue
+                continue  # wait until we have enough transitions
 
             # sample batch from memory
             batch = Transition(*zip(*memory.sample(batch_size)))
