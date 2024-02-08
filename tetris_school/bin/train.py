@@ -25,12 +25,13 @@ def train(
     num_episodes: int = 600,
     batch_size: int = 128,
     ckpt_path: str = "model.ckpt",
+    force: bool = False,
 ):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     game = Tetris(render_mode="human" if ui else None, device=device)
 
     model = Fraser(hidden_size=32, layer_number=4, num_actions=game.action_space.n, input_size=game.width * game.height).to(device)
-    if os.path.exists(ckpt_path):  # load pre-trained model
+    if os.path.exists(ckpt_path) and not force:  # load pre-trained model
         model.load_state_dict(torch.load(ckpt_path))
         temperature = min_temperature
 
@@ -129,5 +130,6 @@ if __name__ == "__main__":
     parser.add_argument("--num_episodes", type=int, default=600, help="Number of episodes")
     parser.add_argument("--ui", action="store_true", help="Render the game")
     parser.add_argument("--ckpt_path", type=str, default="model.ckpt", help="Checkpoint path")
+    parser.add_argument("--force", action="store_true", help="Force to overwrite checkpoint")
 
     train(**vars(parser.parse_args()))
