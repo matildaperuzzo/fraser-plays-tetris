@@ -24,8 +24,8 @@ class Tetris(gym.Env):
 
     def __init__(
         self,
-        width: int = 5,
-        height: int = 5,
+        width: int = 9,
+        height: int = 9,
         render_mode: Optional[str] = None,
         max_score: int = 100,
         device: Optional[Device] = None,
@@ -93,7 +93,12 @@ class Tetris(gym.Env):
 
     def _get_obs(self):
         state = self.placedBlocks.clone()
-        state[self.shape_inview] = 2
+        x, y = self.shape_inview
+
+        state[x, y] = 2
+        if self._inview[0]:
+            state[x[0], y[0]] = 3
+
         return state
 
     def _get_info(self):

@@ -29,10 +29,10 @@ class Fraser(nn.Module):
 
     def state_transform(self, x: torch.Tensor) -> torch.Tensor:
         batch_size = x.size(0)
-        x = F.pad(x, (self.kernel_size[1] // 2, self.kernel_size[1] // 2, self.kernel_size[0] // 2, self.kernel_size[0] // 2))
+        x = F.pad(x, (self.kernel_size[1] // 2, self.kernel_size[1] // 2, self.kernel_size[0] // 2, self.kernel_size[0] // 2), value=-1)
 
         input = torch.zeros((batch_size, *self.kernel_size), device=x.device)
-        batch_idx, width_idx, height_idx = torch.where(x == 2)
+        batch_idx, width_idx, height_idx = torch.where(x == 3)
 
         for n, i, j in zip(batch_idx, width_idx, height_idx):
             patch = x[
