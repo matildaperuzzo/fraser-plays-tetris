@@ -24,8 +24,8 @@ class Tetris(gym.Env):
 
     def __init__(
         self,
-        width: int = 9,
-        height: int = 9,
+        width: int = 5,
+        height: int = 5,
         render_mode: Optional[str] = None,
         max_score: int = 100,
         device: Optional[Device] = None,
@@ -48,28 +48,46 @@ class Tetris(gym.Env):
         self.height_range = torch.arange(self.height, dtype=torch.int, device=self.device) + 1
 
         # define starting shape
-        self._x = torch.tensor(
-            [
-                self.width // 2,
-                # self.width // 2,
-                # self.width // 2 + 1,
-                # self.width // 2 - 1,
-            ],
-            dtype=torch.int,
-            device=self.device,
-        )
-        self._y = torch.tensor(
-            [
-                self.height,
-                # self.height + 1,
-                # self.height,
-                # self.height,
-            ],
-            dtype=torch.int,
-            device=self.device,
-        )
+        self._x = {
+            ".": torch.tensor(
+                [
+                    self.width // 2,
+                ],
+                dtype=torch.int,
+                device=self.device,
+            ),
+            "L": torch.tensor(
+                [
+                    self.width // 2,
+                    self.width // 2 + 1,
+                    self.width // 2,
+                ],
+                dtype=torch.int,
+                device=self.device,
+            ),
+        }
+        self._y = {
+            ".": torch.tensor(
+                [
+                    self.height,
+                ],
+                dtype=torch.int,
+                device=self.device,
+            ),
+            "L": torch.tensor(
+                [
+                    self.height,
+                    self.height,
+                    self.height + 1,
+                ],
+                dtype=torch.int,
+                device=self.device,
+            ),
+        }
 
-        self.shape = {"x": self._x.clone(), "y": self._y.clone()}
+        self.keys = ["."]
+        key = self.np_random.choice(self.keys)
+        self.shape = {"x": self._x[key].clone(), "y": self._y[key].clone()}
 
         self.window = None
         self.clock = None
@@ -118,7 +136,8 @@ class Tetris(gym.Env):
         self.score += num_full
 
     def _new_shape(self):
-        self.shape["x"], self.shape["y"] = self._x.clone(), self._y.clone()
+        key = self.np_random.choice(self.keys)
+        self.shape["x"], self.shape["y"] = self._x[key].clone(), self._y[key].clone()
         return self.shape
 
     @property

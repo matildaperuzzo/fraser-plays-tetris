@@ -5,7 +5,7 @@ from tetris_school.layers import HiddenBlock, Head
 
 
 class Fraser(nn.Module):
-    def __init__(self, hidden_size: int, layer_number: int, kernel_size: tuple = (5, 5), num_actions: int = 4):
+    def __init__(self, hidden_size: int, layer_number: int, kernel_size: tuple = (11, 11), num_actions: int = 4):
         super().__init__()
 
         self.kernel_size = kernel_size
