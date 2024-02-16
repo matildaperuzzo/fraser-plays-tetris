@@ -45,11 +45,29 @@ class Tetris(gym.Env):
 
         self.placedBlocks = torch.zeros((self.width, self.height), dtype=torch.int, device=self.device)
         self._reward = torch.tensor(0, dtype=torch.float, device=self.device)
-        self.height_range = torch.arange(self.height, dtype=torch.int, device=self.device)
+        self.height_range = torch.arange(self.height, dtype=torch.int, device=self.device) + 1
 
         # define starting shape
-        self._x = torch.tensor([self.width // 2], dtype=torch.int, device=self.device)
-        self._y = torch.tensor([self.height], dtype=torch.int, device=self.device)
+        self._x = torch.tensor(
+            [
+                self.width // 2,
+                # self.width // 2,
+                # self.width // 2 + 1,
+                # self.width // 2 - 1,
+            ],
+            dtype=torch.int,
+            device=self.device,
+        )
+        self._y = torch.tensor(
+            [
+                self.height,
+                # self.height + 1,
+                # self.height,
+                # self.height,
+            ],
+            dtype=torch.int,
+            device=self.device,
+        )
 
         self.shape = {"x": self._x.clone(), "y": self._y.clone()}
 
@@ -116,6 +134,8 @@ class Tetris(gym.Env):
 
         # move shape
         x, y = self.move_shape(action)
+        reward = 1 - 2 * self.placedBlocks.sum(dim=-1) / (self.height - 1)
+        self.reward += reward[x].mean() if x.numel() > 0 else 0
 
         # gravity
         if self.y.min() > 0:  # boundary check

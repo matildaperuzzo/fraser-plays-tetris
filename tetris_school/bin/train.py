@@ -31,7 +31,6 @@ def train(
     game = Tetris(render_mode="human" if ui else None, device=device)
 
     model = Fraser(
-        input_size=game.size,
         num_actions=game.action_space.n,
         hidden_size=32,
         layer_number=4,

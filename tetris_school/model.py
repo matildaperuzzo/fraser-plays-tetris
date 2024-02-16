@@ -1,14 +1,16 @@
 import torch
 import torch.nn as nn
-
+import torch.nn.functional as F
 from tetris_school.layers import HiddenBlock, Head
 
 
 class Fraser(nn.Module):
-    def __init__(self, hidden_size: int, layer_number: int, input_size: tuple = (5, 5), num_actions: int = 4):
+    def __init__(self, hidden_size: int, layer_number: int, kernel_size: tuple = (5, 5), num_actions: int = 4):
         super().__init__()
 
-        self.input_size = input_size[0] * input_size[1]
+        self.kernel_size = kernel_size
+        self.input_size = kernel_size[0] * kernel_size[1]
+
         self.embed = nn.Linear(self.input_size, hidden_size)
         self.layers = nn.ModuleList([HiddenBlock(hidden_size) for i in range(layer_number)])
 
@@ -26,7 +28,22 @@ class Fraser(nn.Module):
         return self.head(x)
 
     def state_transform(self, x: torch.Tensor) -> torch.Tensor:
-        return x.view(x.size(0), -1).float()
+        batch_size = x.size(0)
+        x = F.pad(x, (self.kernel_size[1] // 2, self.kernel_size[1] // 2, self.kernel_size[0] // 2, self.kernel_size[0] // 2))
+
+        input = torch.zeros((batch_size, *self.kernel_size), device=x.device)
+        batch_idx, width_idx, height_idx = torch.where(x == 2)
+
+        for n, i, j in zip(batch_idx, width_idx, height_idx):
+            patch = x[
+                n,
+                i - self.kernel_size[0] // 2 : i + self.kernel_size[0] // 2 + 1,
+                j - self.kernel_size[1] // 2 : j + self.kernel_size[1] // 2 + 1,
+            ]
+
+            input[n] = patch
+
+        return input.view(x.size(0), -1).float()
 
 
 class Jordan(nn.Module):
