@@ -2,7 +2,7 @@ from typing import Optional, Union
 from enum import Enum
 import torch
 from torch.types import Device
-
+import numpy as np
 import pygame
 import gymnasium as gym
 from gymnasium import spaces
@@ -57,6 +57,14 @@ class Tetris(gym.Env):
                 dtype=torch.int,
                 device=self.device,
             ),
+            "-": torch.tensor(
+                [
+                    self.width // 2,
+                    self.width // 2,
+                ],
+                dtype=torch.int,
+                device=self.device,
+            ),
             "L": torch.tensor(
                 [
                     self.width // 2,
@@ -71,6 +79,14 @@ class Tetris(gym.Env):
             ".": torch.tensor(
                 [
                     self.height,
+                ],
+                dtype=torch.int,
+                device=self.device,
+            ),
+            "-": torch.tensor(
+                [
+                    self.height,
+                    self.height + 1,
                 ],
                 dtype=torch.int,
                 device=self.device,
@@ -140,6 +156,10 @@ class Tetris(gym.Env):
     def _new_shape(self):
         key = self.np_random.choice(self.keys)
         self.shape["x"], self.shape["y"] = self._x[key].clone(), self._y[key].clone()
+
+        for _ in range(np.random.randint(0, 4)):
+            self.rotate_shape()
+
         return self.shape
 
     @property
@@ -164,7 +184,6 @@ class Tetris(gym.Env):
 
     def step(self, action: Union[int, torch.Tensor]):
         self.reward = 0  # type: ignore
-        board_height = self.board_height
 
         # move shape
         x, y = self.move_shape(action)
@@ -173,8 +192,13 @@ class Tetris(gym.Env):
         if self._inview.all():
             xp, yp = self.project_shape(x, y)
 
-            # penalize increase in board height
-            self.reward -= yp.max() - self.board_height
+            blocks = self.placedBlocks.clone()
+            blocks[xp, yp] = 1
+
+            if blocks.all(axis=0).any():  # reward for full rows
+                self.reward += 1
+            else:  # penalize increase in board height
+                self.reward -= yp.max() - self.board_height
 
         # gravity
         if self.y.min() > 0:  # boundary check
@@ -187,9 +211,6 @@ class Tetris(gym.Env):
             self.placedBlocks[x, y] = 1
             self._clear_rows()
             self._new_shape()
-
-        # penalize increase in board height / reward for clearing rows
-        self.reward -= self.board_height - board_height
 
         terminated = self.terminated
         reward = self.reward.clone()
