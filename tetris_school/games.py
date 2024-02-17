@@ -25,8 +25,8 @@ class Tetris(gym.Env):
 
     def __init__(
         self,
-        width: int = 5,
-        height: int = 5,
+        width: int = 6,
+        height: int = 6,
         render_mode: Optional[str] = None,
         max_score: int = 100,
         device: Optional[Device] = None,
