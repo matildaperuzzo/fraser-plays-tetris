@@ -38,7 +38,7 @@ def train(
 
     if os.path.exists(ckpt_path) and not force:  # load pre-trained model
         model.load_state_dict(torch.load(ckpt_path))
-        temperature = min_temperature
+        # temperature = min_temperature
 
     model_prime = copy.deepcopy(model).to(device)
     model_prime.load_state_dict(model.state_dict())

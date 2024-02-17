@@ -102,7 +102,7 @@ class Tetris(gym.Env):
             ),
         }
 
-        self.keys = ["."]
+        self.keys = ["-"]
         key = self.np_random.choice(self.keys)
         self.shape = {"x": self._x[key].clone(), "y": self._y[key].clone()}
 
@@ -199,6 +199,10 @@ class Tetris(gym.Env):
                 self.reward += 1
             else:  # penalize increase in board height
                 self.reward -= yp.max() - self.board_height
+
+            # penalize for gaps under the shape
+            if (blocks[xp, yp.min() - 1] == 0).any() and yp.min() > 0:
+                self.reward -= 1
 
         # gravity
         if self.y.min() > 0:  # boundary check
