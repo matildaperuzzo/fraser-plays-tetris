@@ -14,6 +14,7 @@ RED2 = (255, 100, 0)
 BLUE1 = (0, 0, 255)
 BLUE2 = (0, 100, 255)
 BLACK = (0, 0, 0)
+GRAY = (200, 200, 200)
 
 BLOCK_SIZE = 20
 
@@ -114,8 +115,9 @@ class Tetris(gym.Env):
         x, y = self.shape_inview
 
         state[x, y] = 2
-        if self._inview[0]:
-            state[x[0], y[0]] = 3
+        if self._inview.any():
+            ymin = y.min(dim=-1)
+            state[x[ymin.indices], ymin.values] = 3
 
         return state
 
@@ -152,14 +154,27 @@ class Tetris(gym.Env):
     def board_height(self) -> torch.Tensor:
         return (self.height_range * self.placedBlocks.any(dim=0)).argmax()
 
+    def project_shape(self, x, y):
+        y = y.clone()
+
+        while y.min() > 0 and not self.placedBlocks[x, y - 1].any():
+            y -= 1
+
+        return x, y
+
     def step(self, action: Union[int, torch.Tensor]):
         self.reward = 0  # type: ignore
         board_height = self.board_height
 
         # move shape
         x, y = self.move_shape(action)
-        reward = 1 - 2 * self.placedBlocks.sum(dim=-1) / (self.height - 1)
-        self.reward += reward[x].mean() if x.numel() > 0 else 0
+
+        # reward based on projected shape
+        if self._inview.all():
+            xp, yp = self.project_shape(x, y)
+
+            # penalize increase in board height
+            self.reward -= yp.max() - self.board_height
 
         # gravity
         if self.y.min() > 0:  # boundary check
@@ -287,11 +302,11 @@ class Tetris(gym.Env):
             pygame.draw.rect(canvas, BLUE1, pygame.Rect(x * BLOCK_SIZE, (self.height - y - 1) * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE))
             pygame.draw.rect(canvas, BLUE2, pygame.Rect(x * BLOCK_SIZE + 4, (self.height - y - 1) * BLOCK_SIZE + 4, 12, 12))
 
-        for x, y in zip(self.shape["x"], self.shape["y"]):
+        for x, y in zip(self.x, self.y):
             pygame.draw.rect(canvas, RED, pygame.Rect(x * BLOCK_SIZE, (self.height - y - 1) * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE))
             pygame.draw.rect(canvas, RED2, pygame.Rect(x * BLOCK_SIZE + 4, (self.height - y - 1) * BLOCK_SIZE + 4, 12, 12))
 
-        x, y = self.shape["x"][0], self.shape["y"][0]
+        x, y = self.x[0], self.y[0]
         pygame.draw.rect(canvas, BLUE1, pygame.Rect(x * BLOCK_SIZE, (self.height - y - 1) * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE))
         text = self.font.render(f"Score: {self.score}", True, WHITE)
 
