@@ -8,7 +8,7 @@ import torch.nn.functional as F
 import torch.optim as optim
 
 from tetris_school.games import Tetris
-from tetris_school.model import Fraser, Jordan
+from tetris_school.model import Fraser
 from tetris_school.utils import ReplayMemory, Transition, plot, REWARD_UNICODE, GAME_OVER
 
 
@@ -31,7 +31,7 @@ def train(
     game = Tetris(render_mode="human" if ui else None, device=device)
 
     model = Fraser(
-        num_actions=game.action_space.n,
+        num_actions=game.action_space.n,  # type: ignore
         hidden_size=32,
         layer_number=4,
     ).to(device)
@@ -46,11 +46,8 @@ def train(
     optimizer = optim.AdamW(model.parameters(), lr=learning_rate, amsgrad=True)
     memory = ReplayMemory(memory_size)
 
-    stats = {
-        "score": [],
-        "temperature": [],
-        "record": 0,
-    }
+    record = 0
+    stats: dict[str, list] = {"score": [], "temperature": []}
     for i in range(num_episodes):
         print(f"Episode {i}\t[", end="")
 
@@ -97,7 +94,7 @@ def train(
 
             # compute V(s_{t+1})
             with torch.no_grad():
-                not_done = (next_states.view(batch_size, -1) != GAME_OVER).all(axis=1)
+                not_done = (next_states.view(batch_size, -1) != GAME_OVER).all(axis=1)  # type: ignore
                 next_rewards = not_done * model_prime(next_states).max(dim=1).values
 
             rewards += gamma * next_rewards
@@ -121,8 +118,8 @@ def train(
                 stats["score"].append(game.score.item())
                 stats["temperature"].append(temperature)
 
-                if game.score > stats["record"]:
-                    stats["record"] = game.score.item()
+                if game.score > record:
+                    record = game.score.item()
                     torch.save(model.state_dict(), ckpt_path)
 
                 plot(stats, yscale="symlog")
