@@ -16,7 +16,7 @@ def train(
     learning_rate: float = 1e-4,
     tau: float = 0.005,
     temperature: float = 1.0,
-    anneal_factor: float = 0.9999,
+    anneal_factor: float = 0.9,
     min_temperature: float = 0.05,
     gamma: float = 0.99,
     ui: bool = False,
