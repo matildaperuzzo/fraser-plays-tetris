@@ -1,21 +1,21 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from tetris_school.layers import HiddenBlock, Head
+from tetris_school.layers import ConvolutionalBlock, Head
 
 
 class Fraser(nn.Module):
-    def __init__(self, hidden_size: int, layer_number: int, kernel_size: tuple = (11, 11), num_actions: int = 4):
+    def __init__(self, embed_dim: int, kernel_size: int = 11, num_states=5, num_actions: int = 4):
         super().__init__()
 
         self.kernel_size = kernel_size
-        self.input_size = kernel_size[0] * kernel_size[1]
+        self.layer_number = kernel_size // 2
 
-        self.embed = nn.Linear(self.input_size, hidden_size)
-        self.layers = nn.ModuleList([HiddenBlock(hidden_size) for i in range(layer_number)])
+        self.embed = nn.Embedding(num_states, embed_dim)
+        self.layers = nn.ModuleList([ConvolutionalBlock(embed_dim) for i in range(self.layer_number)])
 
-        self.norm = nn.LayerNorm(hidden_size)
-        self.head = Head(hidden_size, num_actions=num_actions)
+        self.norm = nn.LayerNorm(embed_dim)
+        self.head = Head(embed_dim, num_actions=num_actions)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         x = self.state_transform(x)
@@ -29,21 +29,21 @@ class Fraser(nn.Module):
 
     def state_transform(self, x: torch.Tensor) -> torch.Tensor:
         batch_size = x.size(0)
-        x = F.pad(x, (self.kernel_size[1] // 2, self.kernel_size[1] // 2, self.kernel_size[0] // 2, self.kernel_size[0] // 2), value=-1)
+        x = F.pad(x, (self.kernel_size // 2, self.kernel_size // 2, self.kernel_size // 2, self.kernel_size // 2), value=4)
 
-        input = torch.zeros((batch_size, *self.kernel_size), device=x.device)
+        input = torch.zeros((batch_size, self.kernel_size, self.kernel_size), device=x.device, dtype=x.dtype)
         batch_idx, width_idx, height_idx = torch.where(x == 3)
 
         for n, i, j in zip(batch_idx, width_idx, height_idx):
             patch = x[
                 n,
-                i - self.kernel_size[0] // 2 : i + self.kernel_size[0] // 2 + 1,
-                j - self.kernel_size[1] // 2 : j + self.kernel_size[1] // 2 + 1,
+                i - self.kernel_size // 2 : i + self.kernel_size // 2 + 1,
+                j - self.kernel_size // 2 : j + self.kernel_size // 2 + 1,
             ]
 
             input[n] = patch
 
-        return input.view(x.size(0), -1).float()
+        return input
 
 
 class Jordan(nn.Module):
@@ -52,7 +52,7 @@ class Jordan(nn.Module):
 
         self.input_size = 2 * input_size[0]
         self.embed = nn.Linear(self.input_size, hidden_size)
-        self.layers = nn.ModuleList([HiddenBlock(hidden_size) for i in range(layer_number)])
+        self.layers = nn.ModuleList([ConvolutionalBlock(hidden_size) for i in range(layer_number)])
 
         self.norm = nn.LayerNorm(hidden_size)
         self.head = Head(hidden_size, num_actions=num_actions)

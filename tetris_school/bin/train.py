@@ -32,8 +32,7 @@ def train(
 
     model = Fraser(
         num_actions=game.action_space.n,  # type: ignore
-        hidden_size=32,
-        layer_number=4,
+        embed_dim=32,
     ).to(device)
 
     if os.path.exists(ckpt_path) and not force:  # load pre-trained model
