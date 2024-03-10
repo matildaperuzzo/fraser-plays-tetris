@@ -16,13 +16,13 @@ def train(
     learning_rate: float = 1e-4,
     tau: float = 0.005,
     temperature: float = 1.0,
-    anneal_factor: float = 0.9,
+    anneal_factor: float = 0.5,
     min_temperature: float = 0.05,
     gamma: float = 0.99,
     ui: bool = False,
     num_workers: int = 1,
     memory_size: int = 10000,
-    num_episodes: int = 150,
+    num_episodes: int = 200,
     batch_size: int = 128,
     ckpt_path: str = "model.ckpt",
     force: bool = False,
@@ -32,7 +32,7 @@ def train(
 
     model = Fraser(
         num_actions=game.action_space.n,  # type: ignore
-        embed_dim=32,
+        embed_dim=64,
     ).to(device)
 
     if os.path.exists(ckpt_path) and not force:  # load pre-trained model
@@ -56,7 +56,7 @@ def train(
             # sample action from model
             with torch.no_grad():
                 logits = model(state.unsqueeze(0))
-                action = torch.multinomial(F.softmax(logits / temperature, dim=-1), num_samples=1).squeeze()
+                action = F.softmax(logits / temperature, dim=-1).argmax().squeeze()
 
             # anneal temperature
             temperature = max(temperature * anneal_factor, min_temperature)

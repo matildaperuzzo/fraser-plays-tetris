@@ -10,8 +10,9 @@ class Fraser(nn.Module):
 
         self.kernel_size = kernel_size
         self.layer_number = kernel_size // 2
+        self.num_states = num_states
 
-        self.embed = nn.Embedding(num_states, embed_dim)
+        self.embed = nn.Embedding(num_states, embed_dim, padding_idx=0)
         self.layers = nn.ModuleList([ConvolutionalBlock(embed_dim) for i in range(self.layer_number)])
 
         self.norm = nn.LayerNorm(embed_dim)
@@ -29,7 +30,9 @@ class Fraser(nn.Module):
 
     def state_transform(self, x: torch.Tensor) -> torch.Tensor:
         batch_size = x.size(0)
-        x = F.pad(x, (self.kernel_size // 2, self.kernel_size // 2, self.kernel_size // 2, self.kernel_size // 2), value=4)
+        x = F.pad(
+            x, (self.kernel_size // 2, self.kernel_size // 2, self.kernel_size // 2, self.kernel_size // 2), value=self.num_states - 1
+        )
 
         input = torch.zeros((batch_size, self.kernel_size, self.kernel_size), device=x.device, dtype=x.dtype)
         batch_idx, width_idx, height_idx = torch.where(x == 3)
