@@ -135,7 +135,7 @@ if __name__ == "__main__":
     parser.add_argument("--num_workers", type=int, default=os.cpu_count(), help="Number of workers")
     parser.add_argument("--memory_size", type=int, default=10000, help="Memory size")
     parser.add_argument("--batch_size", type=int, default=128, help="Batch size")
-    parser.add_argument("--num_episodes", type=int, default=150, help="Number of episodes")
+    parser.add_argument("--num_episodes", type=int, default=200, help="Number of episodes")
     parser.add_argument("--ui", action="store_true", help="Render the game")
     parser.add_argument("--ckpt_path", type=str, default="model.ckpt", help="Checkpoint path")
     parser.add_argument("--force", action="store_true", help="Force to overwrite checkpoint")

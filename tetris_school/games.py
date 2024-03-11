@@ -15,7 +15,9 @@ BLUE1 = (0, 0, 255)
 BLUE2 = (0, 100, 255)
 BLACK = (0, 0, 0)
 GRAY = (200, 200, 200)
+GRAY2 = (100, 100, 100)
 
+REWARD_COLOR = {1: (BLUE1, BLUE2), -1: (RED, RED2), 0: (GRAY, WHITE)}
 BLOCK_SIZE = 20
 
 
@@ -198,7 +200,8 @@ class Tetris(gym.Env):
             if blocks.all(axis=0).any():  # reward for full rows
                 self.reward += 1
             else:  # penalize increase in board height
-                self.reward -= yp.max() - self.board_height
+                delta_height = yp.max() - self.board_height
+                self.reward += 1 if delta_height <= 0 else -1
 
             # penalize for gaps under the shape
             if (blocks[xp, yp.min() - 1] == 0).any() and yp.min() > 0:
@@ -324,15 +327,14 @@ class Tetris(gym.Env):
         for idx in self.placedBlocks.argwhere():
             x, y = idx
 
-            pygame.draw.rect(canvas, BLUE1, pygame.Rect(x * BLOCK_SIZE, (self.height - y - 1) * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE))
-            pygame.draw.rect(canvas, BLUE2, pygame.Rect(x * BLOCK_SIZE + 4, (self.height - y - 1) * BLOCK_SIZE + 4, 12, 12))
+            pygame.draw.rect(canvas, GRAY2, pygame.Rect(x * BLOCK_SIZE, (self.height - y - 1) * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE))
+            pygame.draw.rect(canvas, GRAY, pygame.Rect(x * BLOCK_SIZE + 4, (self.height - y - 1) * BLOCK_SIZE + 4, 12, 12))
 
+        PRIMARY, SECONDARY = REWARD_COLOR[np.sign(self.reward.item())]
         for x, y in zip(self.x, self.y):
-            pygame.draw.rect(canvas, RED, pygame.Rect(x * BLOCK_SIZE, (self.height - y - 1) * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE))
-            pygame.draw.rect(canvas, RED2, pygame.Rect(x * BLOCK_SIZE + 4, (self.height - y - 1) * BLOCK_SIZE + 4, 12, 12))
+            pygame.draw.rect(canvas, PRIMARY, pygame.Rect(x * BLOCK_SIZE, (self.height - y - 1) * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE))
+            pygame.draw.rect(canvas, SECONDARY, pygame.Rect(x * BLOCK_SIZE + 4, (self.height - y - 1) * BLOCK_SIZE + 4, 12, 12))
 
-        x, y = self.x[0], self.y[0]
-        pygame.draw.rect(canvas, BLUE1, pygame.Rect(x * BLOCK_SIZE, (self.height - y - 1) * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE))
         text = self.font.render(f"Score: {self.score}", True, WHITE)
 
         # The following line copies our drawings from `canvas` to the visible window
