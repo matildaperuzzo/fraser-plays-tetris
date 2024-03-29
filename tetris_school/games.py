@@ -6,7 +6,8 @@ class Actions(Enum):
     NOTHING = 0
     RIGHT = 1
     LEFT = 2
-    ROTATE = 3
+    ROTATE_CW = 3
+    ROTATE_CCW = 4
 
 
 # rgb colors
@@ -46,11 +47,12 @@ class Tetris:
         self.height_range = torch.arange(self.height, device=self.device)
 
         # define starting shape
-        self._x = torch.tensor([self.width//2], dtype=torch.int, device=self.device)
-        self._y = torch.tensor([self.height], dtype=torch.int, device=self.device)
+        self._x = torch.tensor([[self.width//2],[self.width//2]], dtype=torch.int, device=self.device)
+        self._y = torch.tensor([[self.height],[self.height-1]], dtype=torch.int, device=self.device)
         self.shape = {"x": self._x.clone(), "y": self._y.clone() }
 
         self.total_cleared_lines = 0
+        self.game_reward = 0
         self.reset()
 
     @property
@@ -70,6 +72,7 @@ class Tetris:
 
         # init game stats
         self.score = 0
+        self.game_reward = 0
 
     @property
     def state(self):
@@ -96,6 +99,9 @@ class Tetris:
         if self.ui:  # 4. update ui and clock
             self._update_ui()
             self.clock.tick(SPEED)
+
+    def set_ui(self, value: bool):
+        self.ui = value
 
     def _update_ui(self):
         self.display.fill(BLACK)
@@ -134,8 +140,11 @@ class Tetris:
                 if not self.placedBlocks[x - 1, y].any():  # collision check
                     self.x -= 1
 
-        elif action == Actions.ROTATE.value:
-            self.rotate_shape()
+        elif action == Actions.ROTATE_CW.value:
+            self.rotate_shape(clockwise=True)
+        
+        elif action == Actions.ROTATE_CCW.value:
+            self.rotate_shape(clockwise=False)
         
         # update shape points in view
         x = self.x[self.shape_inview]
@@ -182,6 +191,10 @@ class Tetris:
 
     def _place_shape(self):
 
+        floor = torch.zeros(len(self.state),dtype=self.state.dtype,device=self.state.device)
+        floor_index = torch.argwhere(self.state == 1).to(self.state.dtype)
+        floor[floor_index[:,0]] = floor_index[:,1]
+
         # shape points in view
         x = self.x[self.shape_inview]
         y = self.y[self.shape_inview]
@@ -190,7 +203,9 @@ class Tetris:
         self.placedBlocks[x, y] = 1
 
         # reward for filling out board horizontally
-        # self.reward += 1 if self.y.min() == 0 else -1
+        
+        self.reward += -1 if torch.any(self.state[self.x,self.y-1] == 0) else 1
+        self.game_reward += self.reward
 
     def _clear_rows(self):
         isfull = self.placedBlocks.all(axis=0)
@@ -205,7 +220,7 @@ class Tetris:
         self.total_cleared_lines += num_full
 
         # reward for clearing rows
-        self.reward += torch.log10(num_full+1)
+        # self.reward += 10*num_full
   
     def _new_shape(self):
         """Create a new shape above the view"""
@@ -221,19 +236,98 @@ class Tetris:
         self.reward -= 10 if self.done else 0
         return self.done
 
-    def rotate_shape(self):
+    def rotate_shape(self, clockwise: bool = True):
         """Rotate shape clockwise"""
 
-        x_median = self.x.median()
-        y_median = self.y.median()
+        x_median = torch.unique(self.x.float()).mean()
+        y_median = torch.unique(self.y.float()).mean()
 
-        # rotate shape
-        x_rotated = x_median - (self.y - y_median)
-        y_rotated = y_median + (self.x - x_median)
+        if clockwise == False:
+            # rotate shape
+            x_rotated = x_median - (self.y - y_median)
+            y_rotated = y_median + (self.x - x_median)
+        else:
+            # rotate shape
+            x_rotated = x_median + (self.y - y_median)
+            y_rotated = y_median - (self.x - x_median)
 
         if x_rotated.max() < self.width-1 and x_rotated.min() > 0:  # boundary check
             # check for collisions
+            x_rotated = x_rotated.int()
+            y_rotated = y_rotated.int()
             if not self.placedBlocks[x_rotated[y_rotated < self.height], y_rotated[y_rotated < self.height]].any():
 
                 self.x = x_rotated
                 self.y = y_rotated
+
+    
+    def _check_move(self,action):
+    # shape points in view
+        x = self.x[self.shape_inview]
+        y = self.y[self.shape_inview]
+
+        new_x = x.clone()
+        new_y = y.clone()
+
+        # possible actions
+        if action.item() == Actions.RIGHT.value:
+            if new_x.max() < self.width-1:  # boundary check
+                if not self.placedBlocks[x + 1, y].any():  # collision check
+                    new_x += 1
+
+        elif action.item() == Actions.LEFT.value:
+            if new_x.min() > 0:  # boundary check
+                if not self.placedBlocks[x - 1, y].any():  # collision check
+                    new_x -= 1
+
+        elif action.item() == Actions.ROTATE_CW.value:
+            new_x, new_y = self.rotate_xy(x, y, clockwise=True)
+        
+        elif action.item() == Actions.ROTATE_CCW.value:
+            new_x, new_y = self.rotate_xy(x, y, clockwise=False)
+        
+        # update shape points in view
+        x = new_x
+        y = new_y
+
+        unique_x = torch.unique(x)
+        unique_y = torch.zeros_like(unique_x)
+        for u in range(len(unique_x)):
+            unique_y[u] =y[torch.where(x==unique_x[u])[0]].min().unsqueeze(0)
+
+        # find highest y index where state[x,y] == 1 for each unique x
+        y_max = torch.zeros_like(unique_y)
+        for i, xs in enumerate(unique_x):
+            if (self.state[xs]==1).any():
+                y_max[i] = torch.where(self.state[xs]==1)[0].max()+1
+            else:
+                y_max[i] = 0
+        diff = unique_y-y_max
+        _, counts = torch.unique(diff, return_counts = True)
+        score = counts.max()/len(y_max) #+ 2*(self.height - y_max.max())/self.height
+        return score
+    
+    def rotate_xy(self, x, y, clockwise: bool = True):
+        """Rotate shape clockwise"""
+
+        x_median = torch.unique(x.float()).mean()
+        y_median = torch.unique(y.float()).mean()
+
+        if clockwise == False:
+            # rotate shape
+            x_rotated = x_median - (y - y_median)
+            y_rotated = y_median + (x - x_median)
+        else:
+            # rotate shape
+            x_rotated = x_median + (y - y_median)
+            y_rotated = y_median - (x - x_median)
+
+        if x_rotated.max() < self.width-1 and x_rotated.min() > 0:  # boundary check
+            # check for collisions
+            x_rotated = x_rotated.int()
+            y_rotated = y_rotated.int()
+            if not self.placedBlocks[x_rotated[y_rotated < self.height], y_rotated[y_rotated < self.height]].any():
+
+                x = x_rotated
+                y = y_rotated
+        return x,y

@@ -38,3 +38,20 @@ class Head(nn.Module):
         if representations.ndim == 1:
             representations = representations.unsqueeze(0).unsqueeze(1)
         return {'representations': representations, 'logits': representations.mean(axis=(0,1))}
+    
+class HeadSimple(nn.Module):
+    def __init__(self, embed_dim: int, num_actions: int):
+        super().__init__()
+
+        self.fc = nn.Linear(embed_dim, embed_dim)
+        self.norm = nn.LayerNorm(embed_dim)
+        self.toaction = nn.Linear(embed_dim, num_actions)
+
+    def forward(self, x: torch.Tensor) -> dict:
+
+        x = self.fc(x)
+        x = F.gelu(x)
+        x = self.norm(x)
+        x = self.toaction(x)
+
+        return x
