@@ -22,8 +22,8 @@ SPEED = 100
 
 
 class Tetris:
-    def __init__(self, width: int = 5, height: int = 5, ui: bool = True):
-        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    def __init__(self, width: int = 5, height: int = 5, ui: bool = True, device:str = 'cpu'):
+        self.device = device
 
         # define size of game board
         self.width = width

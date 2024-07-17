@@ -11,7 +11,16 @@ from tetris_school.utils import plot
 
 
 def train(learning_rate: float = 0.001, temperature: float = 10.0, ui: bool = True, file: Optional[str] = None):
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
+    device = "cpu"
+    if torch.cuda.is_available():
+        device = "cuda"
+
+    # TODO figure out why MPS-backed is slower than CPU!
+    # elif torch.backends.mps.is_available():
+    #     device = "mps"
+
+    device = torch.device(device)
 
     plot_scores = []
     plot_mean_scores = []
@@ -19,7 +28,7 @@ def train(learning_rate: float = 0.001, temperature: float = 10.0, ui: bool = Tr
     total_score = 0
     record = 0
 
-    game = Tetris(ui=ui)
+    game = Tetris(ui=ui, device=device)
     model = Jordan(hidden_size=32, layer_number=6, input_size=2*game.state.shape[0], num_actions=3).to(device)
     optimizer = optim.AdamW(model.parameters(), lr=learning_rate)
 
@@ -43,13 +52,13 @@ def train(learning_rate: float = 0.001, temperature: float = 10.0, ui: bool = Tr
             n_games += 1
             print(f'Game {n_games} Score {game.score} Record {record}')
 
-            plot_scores.append(game.score)
+            plot_scores.append(game.score.cpu())
             if game.score > record:
                 record = game.score
 
             total_score += game.score
             mean_score = total_score / n_games
-            plot_mean_scores.append(mean_score)
+            plot_mean_scores.append(mean_score.cpu())
 
             plot(plot_scores, plot_mean_scores)
             temperature *= 0.999
